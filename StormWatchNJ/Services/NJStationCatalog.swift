@@ -1,0 +1,72 @@
+import Foundation
+
+/// The New Jersey river gauges StormWatch NJ watches.
+///
+/// Site numbers, names and coordinates were taken from the live USGS Water
+/// Services response for these sites, so they match what the API returns. The
+/// `actionStageFt` / `floodStageFt` thresholds are *demo values* chosen to be
+/// plausible for each basin — before any real deployment they must be replaced
+/// with the official NWS AHPS flood stages for each site.
+enum NJStationCatalog {
+    static let stations: [USGSStation] = [
+        USGSStation(siteID: "01402000",
+                    stationName: "Millstone River at Blackwells Mills",
+                    county: "Somerset",
+                    latitude: 40.4750, longitude: -74.5758,
+                    actionStageFt: 5.0, floodStageFt: 7.0),
+        USGSStation(siteID: "01400500",
+                    stationName: "Raritan River at Manville",
+                    county: "Somerset",
+                    latitude: 40.5556, longitude: -74.5828,
+                    actionStageFt: 8.0, floodStageFt: 10.0),
+        USGSStation(siteID: "01403060",
+                    stationName: "Raritan River below Calco Dam at Bound Brook",
+                    county: "Somerset",
+                    latitude: 40.5511, longitude: -74.5483,
+                    actionStageFt: 22.0, floodStageFt: 28.0),
+        USGSStation(siteID: "01396500",
+                    stationName: "South Branch Raritan River near High Bridge",
+                    county: "Hunterdon",
+                    latitude: 40.6778, longitude: -74.8792,
+                    actionStageFt: 5.5, floodStageFt: 8.5),
+        USGSStation(siteID: "01379000",
+                    stationName: "Passaic River near Millington",
+                    county: "Morris",
+                    latitude: 40.6800, longitude: -74.5289,
+                    actionStageFt: 6.0, floodStageFt: 8.0),
+        USGSStation(siteID: "01389500",
+                    stationName: "Passaic River at Little Falls",
+                    county: "Passaic",
+                    latitude: 40.8847, longitude: -74.2261,
+                    actionStageFt: 5.0, floodStageFt: 7.0),
+        USGSStation(siteID: "01391500",
+                    stationName: "Saddle River at Lodi",
+                    county: "Bergen",
+                    latitude: 40.8903, longitude: -74.0806,
+                    actionStageFt: 4.0, floodStageFt: 6.0),
+        USGSStation(siteID: "01381500",
+                    stationName: "Whippany River at Morristown",
+                    county: "Morris",
+                    latitude: 40.8072, longitude: -74.4569,
+                    actionStageFt: 3.5, floodStageFt: 5.0),
+        USGSStation(siteID: "01445500",
+                    stationName: "Pequest River at Pequest",
+                    county: "Warren",
+                    latitude: 40.8306, longitude: -74.9778,
+                    actionStageFt: 3.5, floodStageFt: 5.0),
+        USGSStation(siteID: "01408000",
+                    stationName: "Manasquan River at Squankum",
+                    county: "Monmouth",
+                    latitude: 40.1614, longitude: -74.1547,
+                    actionStageFt: 4.0, floodStageFt: 6.0),
+        USGSStation(siteID: "01467000",
+                    stationName: "North Branch Rancocas Creek at Pemberton",
+                    county: "Burlington",
+                    latitude: 39.9700, longitude: -74.6844,
+                    actionStageFt: 3.0, floodStageFt: 4.5)
+    ]
+
+    static var siteIDList: String {
+        stations.map(\.siteID).joined(separator: ",")
+    }
+}
