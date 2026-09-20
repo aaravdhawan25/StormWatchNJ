@@ -30,23 +30,38 @@ Requirements: **Xcode 15 or newer**, iOS 17 deployment target.
 | --- | --- |
 | **Map** | Hazard pins colored by severity plus river-gauge pins, filtered to your search radius. Live counts of impassable roads, downed wires and rising rivers. |
 | **Nearby** | Active hazards within the radius, nearest first, filterable by hazard type. |
-| **Report** | Snap & Triage: photo → AI analysis → pre-filled draft → you confirm → posted. |
+| **Report** | Snap & Triage: photo → AI analysis → pre-filled draft → you confirm → posted. Camera, photo library, or two built-in sample scenes. |
 | **Rivers** | All 11 monitored gauges with live gage height against flood stage. Pull to refresh. |
 | **DPW** | Open dispatch queue sorted by severity, GeoJSON/CSV export, demo and backend controls. |
 
 ### AI triage
 
-By default photos are classified **on-device** with Apple's Vision framework
-(`VNClassifyImageRequest`) — no network, no key, works in the simulator. The engine
-scores scene labels against four hazard vocabularies, then derives severity, road
-status and the blueprint's utility-wire safety check.
+Photos are analyzed **on-device** by default — no network, no key. Two independent
+lines of evidence are combined:
 
-Every machine-filled field stays editable and nothing is published until you tap
-**Post report**. That human-in-the-loop step is the point, not a limitation.
+1. **Apple's Vision scene classifier** (`VNClassifyImageRequest`), matched against
+   *exact* identifiers from its 1,303-label taxonomy. Substring matching is actively
+   wrong here: `"tree"` matches `street`, `"line"` matches `feline`, `"car"` matches
+   `carrot`.
+2. **Colour analysis** (`ImageSignals`), because that taxonomy has no label for
+   flooding, a blocked drain or a downed wire. Blue-tinted and silty-brown pixels
+   count fully toward "water"; flat neutral grey counts only partially, since dry
+   asphalt is grey too. On the bundled sample scenes a flooded road measures 0.85
+   water coverage against 0.14 for a dry road — that separation is what the hazard
+   scoring rests on.
+
+The engine shows its working: every result lists what it actually saw. It is a
+transparent heuristic, not a trained hazard model. It proposes; you dispose — every
+field stays editable and nothing is published until you tap **Post report**.
+
+> **Simulator note:** Vision's scene classifier does not run in the iOS Simulator
+> (its Core ML backend fails with "could not create espresso context"). The app
+> detects this, falls back to colour analysis alone, caps confidence lower and says
+> so in the results. On a real device both signals are used.
 
 Flip **Use backend for AI triage** in the DPW tab to route photos to the FastAPI +
-Gemini endpoint in `backend/` instead. If that call fails, the app falls back to
-on-device triage and tells you why.
+Gemini endpoint in `backend/` for a real multimodal model. If that call fails, the
+app falls back to on-device analysis and tells you why.
 
 ### River telemetry
 
@@ -118,6 +133,48 @@ python3 Tools/generate_xcodeproj.py
 
 Adding files through Xcode's UI works too — the generator just keeps the file tidy and
 diffable, and lets the project be rebuilt from scratch.
+
+### Location
+
+The app needs a New Jersey location to show anything — the radius filter is the
+whole point. It handles every case rather than showing an empty map:
+
+| Situation | Behaviour |
+| --- | --- |
+| Real fix inside NJ | Uses it. |
+| Real fix outside NJ | Falls back to the Plainsboro demo area and says so. |
+| Permission denied or not yet granted | Falls back, with an **Allow** button on the map. |
+
+This matters in the simulator, whose default location is Cupertino — over 2,000
+miles outside any 5-mile radius. To simulate a real NJ position:
+
+```bash
+xcrun simctl location "iPhone 17 Pro" set 40.3318,-74.5893
+```
+
+Or in the Simulator: **Features → Location → Custom Location**.
+
+### Debug-only launch arguments
+
+`Debug` builds accept two arguments used by the screenshot pass. They are compiled
+out of `Release` entirely.
+
+```bash
+xcrun simctl launch "iPhone 17 Pro" com.stormwatchnj.StormWatchNJ \
+  -startTab 2 -demoScene floodedRoad
+```
+
+- `-startTab 0…4` — open a given tab on launch
+- `-demoScene floodedRoad|downedTree` — load a sample scene and run triage
+
+### App icon
+
+`Assets.xcassets/AppIcon.appiconset/AppIcon.png` is drawn in code so it is
+reproducible and reviewable in the diff:
+
+```bash
+swift Tools/make_app_icon.swift StormWatchNJ/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+```
 
 ## Privacy
 

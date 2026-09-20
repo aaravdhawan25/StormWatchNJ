@@ -29,17 +29,25 @@ struct HazardDetailView: View {
 
             Section {
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Label(current.reportType.label, systemImage: current.reportType.symbolName)
-                            .font(.headline)
-                        Spacer()
+                    HStack(spacing: 10) {
+                        ZStack {
+                            Circle().fill(current.severity.tint.opacity(0.18)).frame(width: 42, height: 42)
+                            Image(systemName: current.reportType.symbolName)
+                                .font(.title3)
+                                .foregroundStyle(current.severity.tint)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(current.reportType.label).font(.headline)
+                            Text(current.municipality).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 0)
                         SeverityBadge(severity: current.severity)
                     }
 
                     Text(current.details).font(.subheadline)
 
                     if current.utilityLinesInvolved {
-                        WireWarningBadge()
+                        WireWarningBanner()
                     }
                 }
                 .padding(.vertical, 4)

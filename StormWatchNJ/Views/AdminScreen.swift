@@ -33,7 +33,15 @@ struct AdminScreen: View {
                 backendSection
                 dataSection
             }
-            .navigationTitle("DPW Console")
+            .safeAreaInset(edge: .top, spacing: 0) {
+                StormHeader(title: "DPW Console",
+                            subtitle: "\(openReports.count) open work orders") {
+                    Image(systemName: "building.2.fill")
+                        .font(.title2)
+                        .foregroundStyle(.white.opacity(0.85))
+                }
+            }
+            .navigationBarHidden(true)
             .sheet(item: $sheet) { destination in
                 switch destination {
                 case .share(let url):
@@ -72,12 +80,27 @@ struct AdminScreen: View {
                     NavigationLink {
                         HazardDetailView(report: report)
                     } label: {
-                        HazardRow(report: report)
+                        HStack(spacing: 10) {
+                            ZStack {
+                                Circle().fill(report.severity.tint.opacity(0.18)).frame(width: 34, height: 34)
+                                Image(systemName: report.reportType.symbolName)
+                                    .font(.footnote)
+                                    .foregroundStyle(report.severity.tint)
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(report.reportType.label).font(.subheadline.weight(.medium))
+                                Text("\(report.municipality) · \(report.createdAt.shortRelative)")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 0)
+                            SeverityBadge(severity: report.severity, compact: true)
+                        }
+                        .padding(.vertical, 2)
                     }
                 }
             }
         } header: {
-            Text("Open dispatch queue · \(openReports.count)")
+            Text("Open dispatch queue")
         } footer: {
             Text("Sorted by severity, then most recently updated — the order a crew would work it.")
         }

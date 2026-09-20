@@ -15,6 +15,7 @@ struct StormWatchNJApp: App {
                 .environmentObject(location)
                 .environmentObject(settings)
                 .tint(.teal)
+
         }
     }
 }

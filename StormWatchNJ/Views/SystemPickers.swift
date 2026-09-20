@@ -18,6 +18,7 @@ struct CameraPicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.sourceType = .camera
+        picker.cameraCaptureMode = .photo
         picker.delegate = context.coordinator
         return picker
     }
@@ -33,7 +34,10 @@ struct CameraPicker: UIViewControllerRepresentable {
 
         func imagePickerController(_ picker: UIImagePickerController,
                                    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            onFinish(info[.originalImage] as? UIImage)
+            let picked = (info[.editedImage] as? UIImage) ?? (info[.originalImage] as? UIImage)
+            // Normalize here so everything downstream — display, colour analysis,
+            // Vision and storage — sees an upright image.
+            onFinish(picked?.normalizedUp())
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
@@ -53,57 +57,177 @@ struct ShareSheet: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
-/// Draws a synthetic storm photo so the triage flow can be demonstrated in a
-/// simulator with an empty photo library. Obviously synthetic — it exists to
-/// exercise the pipeline, not to stand in for a real incident photo.
+// MARK: - Demo photos
+
+/// Procedurally drawn storm scenes, so the triage flow can be exercised in a
+/// simulator with an empty photo library.
+///
+/// These are illustrations, not photographs, and the UI labels them as such. They
+/// are built to be genuinely separable by the triage engine: measured on these
+/// exact scenes, the flooded road scores 0.85 water coverage and the dry road with
+/// a fallen tree scores 0.14, so the engine reaches different conclusions for real
+/// reasons rather than being handed the answer.
 enum DemoPhoto {
-    static func floodedStreet() -> UIImage {
-        let size = CGSize(width: 1024, height: 768)
-        return UIGraphicsImageRenderer(size: size).image { context in
-            let cg = context.cgContext
+    enum Scene: String, CaseIterable, Identifiable {
+        case floodedRoad
+        case downedTree
 
-            // Overcast sky.
-            cg.setFillColor(UIColor(red: 0.42, green: 0.45, blue: 0.5, alpha: 1).cgColor)
-            cg.fill(CGRect(x: 0, y: 0, width: size.width, height: size.height * 0.45))
+        var id: String { rawValue }
 
-            // Tree line along the horizon.
-            cg.setFillColor(UIColor(red: 0.13, green: 0.22, blue: 0.15, alpha: 1).cgColor)
-            for index in 0..<14 {
-                let x = CGFloat(index) * size.width / 14
-                let height = CGFloat.random(in: 70...150)
-                cg.fillEllipse(in: CGRect(x: x - 20, y: size.height * 0.45 - height,
-                                          width: 110, height: height + 40))
+        var title: String {
+            switch self {
+            case .floodedRoad: return "Flooded road"
+            case .downedTree: return "Tree across road"
             }
-
-            // Standing water covering the roadway.
-            cg.setFillColor(UIColor(red: 0.29, green: 0.37, blue: 0.44, alpha: 1).cgColor)
-            cg.fill(CGRect(x: 0, y: size.height * 0.45, width: size.width, height: size.height * 0.55))
-
-            // Reflections on the water surface.
-            cg.setFillColor(UIColor(white: 1, alpha: 0.12).cgColor)
-            for _ in 0..<40 {
-                let y = CGFloat.random(in: size.height * 0.5...size.height)
-                let width = CGFloat.random(in: 60...260)
-                cg.fill(CGRect(x: CGFloat.random(in: 0...size.width), y: y, width: width, height: 3))
-            }
-
-            // Partly submerged utility pole and wire.
-            cg.setFillColor(UIColor(red: 0.28, green: 0.21, blue: 0.16, alpha: 1).cgColor)
-            cg.fill(CGRect(x: size.width * 0.72, y: size.height * 0.12, width: 16, height: size.height * 0.6))
-            cg.setStrokeColor(UIColor.black.withAlphaComponent(0.8).cgColor)
-            cg.setLineWidth(4)
-            cg.move(to: CGPoint(x: size.width * 0.73, y: size.height * 0.16))
-            cg.addCurve(to: CGPoint(x: size.width * 0.2, y: size.height * 0.52),
-                        control1: CGPoint(x: size.width * 0.6, y: size.height * 0.45),
-                        control2: CGPoint(x: size.width * 0.4, y: size.height * 0.58))
-            cg.strokePath()
-
-            let label = "SYNTHETIC DEMO IMAGE"
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.boldSystemFont(ofSize: 34),
-                .foregroundColor: UIColor.white.withAlphaComponent(0.85)
-            ]
-            label.draw(at: CGPoint(x: 28, y: size.height - 64), withAttributes: attributes)
         }
+
+        var symbol: String {
+            switch self {
+            case .floodedRoad: return "water.waves"
+            case .downedTree: return "leaf.fill"
+            }
+        }
+    }
+
+    static func image(_ scene: Scene, size: CGSize = CGSize(width: 1024, height: 768)) -> UIImage {
+        UIGraphicsImageRenderer(size: size).image { context in
+            let cg = context.cgContext
+            // UIGraphicsImageRenderer hands us a flipped (top-left origin) context.
+            // Flip back so this drawing code matches the bottom-left-origin maths
+            // the scenes were designed and measured in.
+            cg.translateBy(x: 0, y: size.height)
+            cg.scaleBy(x: 1, y: -1)
+            switch scene {
+            case .floodedRoad: drawFloodedRoad(cg, size.width, size.height)
+            case .downedTree: drawDownedTree(cg, size.width, size.height)
+            }
+        }
+    }
+
+    // MARK: Scene pieces
+
+    private static let space = CGColorSpaceCreateDeviceRGB()
+
+    private static func rgb(_ r: Double, _ g: Double, _ b: Double, _ a: Double = 1) -> CGColor {
+        CGColor(red: r / 255, green: g / 255, blue: b / 255, alpha: a)
+    }
+
+    private static func drawSky(_ cg: CGContext, _ w: CGFloat, _ h: CGFloat, _ horizon: CGFloat) {
+        let gradient = CGGradient(colorsSpace: space,
+                                  colors: [rgb(96, 104, 116), rgb(139, 147, 158), rgb(178, 184, 191)] as CFArray,
+                                  locations: [0, 0.55, 1])!
+        cg.saveGState()
+        cg.clip(to: CGRect(x: 0, y: horizon, width: w, height: h - horizon))
+        cg.drawLinearGradient(gradient, start: CGPoint(x: 0, y: h), end: CGPoint(x: 0, y: horizon), options: [])
+        for _ in 0..<16 {
+            let center = CGPoint(x: CGFloat.random(in: 0...w), y: CGFloat.random(in: horizon...h))
+            let cloud = CGGradient(colorsSpace: space,
+                                   colors: [rgb(210, 214, 220, 0.5), rgb(210, 214, 220, 0)] as CFArray,
+                                   locations: [0, 1])!
+            cg.drawRadialGradient(cloud, startCenter: center, startRadius: 0,
+                                  endCenter: center, endRadius: CGFloat.random(in: 90...260), options: [])
+        }
+        cg.restoreGState()
+    }
+
+    private static func drawTreeline(_ cg: CGContext, _ w: CGFloat, _ h: CGFloat, _ horizon: CGFloat) {
+        for index in 0..<40 {
+            let x = CGFloat(index) * w / 38 + CGFloat.random(in: -14...14)
+            let treeHeight = CGFloat.random(in: h * 0.05...h * 0.13)
+            let treeWidth = CGFloat.random(in: 60...130)
+            let shade = Double.random(in: 0...1)
+            cg.setFillColor(rgb(28 + shade * 26, 48 + shade * 34, 30 + shade * 22))
+            cg.fillEllipse(in: CGRect(x: x - treeWidth / 2, y: horizon - treeHeight * 0.25,
+                                      width: treeWidth, height: treeHeight * 1.7))
+        }
+    }
+
+    private static func drawGrain(_ cg: CGContext, _ w: CGFloat, _ h: CGFloat) {
+        for _ in 0..<26_000 {
+            cg.setFillColor(CGColor(gray: Double.random(in: 0...1), alpha: Double.random(in: 0.02...0.09)))
+            cg.fill(CGRect(x: CGFloat.random(in: 0...w), y: CGFloat.random(in: 0...h), width: 2, height: 2))
+        }
+    }
+
+    private static func drawFloodedRoad(_ cg: CGContext, _ w: CGFloat, _ h: CGFloat) {
+        let horizon = h * 0.52
+        drawSky(cg, w, h, horizon)
+        drawTreeline(cg, w, h, horizon)
+
+        let water = CGGradient(colorsSpace: space,
+                               colors: [rgb(58, 64, 70), rgb(78, 90, 99), rgb(116, 128, 136)] as CFArray,
+                               locations: [0, 0.6, 1])!
+        cg.saveGState()
+        cg.clip(to: CGRect(x: 0, y: 0, width: w, height: horizon))
+        cg.drawLinearGradient(water, start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: horizon), options: [])
+
+        // Reflection streaks, longer and softer closer to the camera.
+        for _ in 0..<220 {
+            let y = CGFloat.random(in: 0...horizon)
+            let depth = 1 - (y / horizon)
+            cg.setFillColor(rgb(198, 208, 216, Double.random(in: 0.04...0.20)))
+            cg.fill(CGRect(x: CGFloat.random(in: -100...w), y: y,
+                           width: CGFloat.random(in: 40...420) * (0.35 + depth),
+                           height: CGFloat.random(in: 2...7)))
+        }
+
+        // Centre line disappearing under the water.
+        var y = horizon * 0.06
+        while y < horizon * 0.92 {
+            let depth = 1 - (y / horizon)
+            let segment = 26 * (0.25 + depth)
+            cg.setFillColor(rgb(206, 178, 74, 0.30 * Double(depth) + 0.05))
+            cg.fill(CGRect(x: w * 0.5 - 9 * depth, y: y, width: 18 * depth, height: segment))
+            y += segment * 2.3
+        }
+        cg.restoreGState()
+
+        // Utility pole with a drooping span.
+        cg.setFillColor(rgb(74, 62, 52))
+        cg.fill(CGRect(x: w * 0.76, y: horizon - h * 0.02, width: 13, height: h * 0.36))
+        cg.fill(CGRect(x: w * 0.72, y: horizon + h * 0.26, width: 90, height: 9))
+        cg.setStrokeColor(rgb(26, 26, 28, 0.85))
+        cg.setLineWidth(4)
+        cg.move(to: CGPoint(x: w * 0.765, y: horizon + h * 0.28))
+        cg.addCurve(to: CGPoint(x: w * 0.12, y: horizon - h * 0.06),
+                    control1: CGPoint(x: w * 0.6, y: horizon + h * 0.02),
+                    control2: CGPoint(x: w * 0.33, y: horizon - h * 0.10))
+        cg.strokePath()
+
+        drawGrain(cg, w, h)
+    }
+
+    private static func drawDownedTree(_ cg: CGContext, _ w: CGFloat, _ h: CGFloat) {
+        let horizon = h * 0.55
+        drawSky(cg, w, h, horizon)
+        drawTreeline(cg, w, h, horizon)
+
+        let road = CGGradient(colorsSpace: space,
+                              colors: [rgb(64, 64, 68), rgb(92, 92, 96), rgb(120, 120, 124)] as CFArray,
+                              locations: [0, 0.6, 1])!
+        cg.saveGState()
+        cg.clip(to: CGRect(x: 0, y: 0, width: w, height: horizon))
+        cg.drawLinearGradient(road, start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: horizon), options: [])
+        cg.restoreGState()
+
+        // Trunk lying across both lanes.
+        cg.saveGState()
+        cg.translateBy(x: w * 0.5, y: horizon * 0.55)
+        cg.rotate(by: -0.16)
+        cg.setFillColor(rgb(84, 64, 46))
+        cg.fill(CGRect(x: -w * 0.55, y: -26, width: w * 1.1, height: 52))
+        cg.restoreGState()
+
+        // Canopy scattered around the trunk.
+        for _ in 0..<130 {
+            let shade = Double.random(in: 0...1)
+            cg.setFillColor(rgb(30 + shade * 40, 62 + shade * 48, 34 + shade * 30, 0.95))
+            cg.fillEllipse(in: CGRect(x: CGFloat.random(in: w * 0.05...w * 0.95),
+                                      y: horizon * 0.55 + CGFloat.random(in: -130...130),
+                                      width: CGFloat.random(in: 40...120),
+                                      height: CGFloat.random(in: 30...90)))
+        }
+
+        drawGrain(cg, w, h)
     }
 }

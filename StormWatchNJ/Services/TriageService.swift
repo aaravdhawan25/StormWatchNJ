@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import UIKit
 import Vision
@@ -14,84 +15,137 @@ struct HazardAnalysis: Equatable {
     /// resident always knows the fields were machine-filled.
     var engine: String
     var confidence: Double
-    var topLabels: [String]
+    /// Short plain-English lines explaining what the engine actually saw.
+    var evidence: [String]
 }
 
 protocol TriageEngine {
     var name: String { get }
-    func analyze(imageData: Data, near coordinate: CLLocationCoordinate2DBox) async throws -> HazardAnalysis
+    func analyze(image: UIImage, imageData: Data, context: TriageContext) async throws -> HazardAnalysis
 }
 
-/// Small wrapper so the protocol does not need to import CoreLocation.
-struct CLLocationCoordinate2DBox {
-    var latitude: Double
-    var longitude: Double
+/// Where the report is being filed, used only to phrase the description.
+struct TriageContext {
     var municipality: String
 }
 
 // MARK: - On-device engine
 
-/// Classifies the photo with Apple's built-in Vision scene taxonomy
-/// (`VNClassifyImageRequest`). No API key, no network, works in the simulator —
-/// this is what makes the "snap and triage" flow demonstrable out of the box.
+/// Two independent lines of evidence, combined:
+///
+/// 1. Apple's Vision scene classifier (`VNClassifyImageRequest`), matched against
+///    **exact** identifiers from its 1,303-label taxonomy. Substring matching was
+///    tried first and is actively wrong here — "tree" matches `street`, "line"
+///    matches `feline`, "car" matches `carrot`.
+/// 2. Colour statistics from `ImageSignalExtractor`, because that taxonomy has no
+///    label for flooding, a blocked drain or a downed wire.
+///
+/// This is deliberately a transparent heuristic, not a trained hazard model. It
+/// proposes; the resident disposes. For a real multimodal model, point the app at
+/// the Gemini backend in `backend/`.
 struct OnDeviceTriageEngine: TriageEngine {
-    let name = "On-device Vision"
+    var name: String { "On-device analysis" }
 
-    private static let wireTerms = ["power_line", "powerline", "utility_pole", "telephone_pole",
-                                    "electricity", "cable", "wire", "transmission_tower", "pylon"]
-    private static let treeTerms = ["tree", "branch", "trunk", "log", "forest", "woodland",
-                                    "foliage", "leaf", "plant", "shrub"]
-    private static let floodTerms = ["flood", "water", "puddle", "river", "lake", "rain",
-                                     "stream", "creek", "pond", "wave", "reflection", "storm"]
-    private static let drainTerms = ["drain", "sewer", "manhole", "gutter", "grate",
-                                     "curb", "debris", "trash", "pipe"]
+    // Every term below is a verbatim identifier from the Vision taxonomy.
+    private static let waterLabels: Set<String> = [
+        "water", "water_body", "waterways", "waterfall", "river", "lake", "creek",
+        "wetland", "dam", "underwater", "submarine_water", "storm", "thunderstorm"
+    ]
+    private static let treeLabels: Set<String> = [
+        "tree", "oak_tree", "maple_tree", "eucalyptus_tree", "palm_tree", "branch",
+        "forest", "foliage", "wood_natural", "shrub", "plant", "decorative_plant", "leaf"
+    ]
+    private static let wireLabels: Set<String> = [
+        "pole", "flagpole", "pylon", "tower", "cableway", "clothesline", "cord", "rope"
+    ]
+    private static let drainLabels: Set<String> = [
+        "manhole", "trash_can", "pipe"
+    ]
+    /// Not a hazard class — evidence that we are looking at a roadway at all.
+    private static let roadLabels: Set<String> = [
+        "road", "dirt_road", "road_other", "street", "street_sign", "traffic_light",
+        "car", "sidewalk", "bridge", "tunnel", "license_plate", "outdoor"
+    ]
 
-    func analyze(imageData: Data, near coordinate: CLLocationCoordinate2DBox) async throws -> HazardAnalysis {
-        let observations = try await classify(imageData: imageData)
+    func analyze(image: UIImage, imageData: Data, context: TriageContext) async throws -> HazardAnalysis {
+        // Vision's scene classifier is unavailable in the iOS Simulator — its
+        // Core ML backend fails with "could not create espresso context". Colour
+        // analysis is plain Core Graphics and always works, so a classifier
+        // failure degrades the result instead of killing the whole flow.
+        let observations = (try? await classify(imageData: imageData)) ?? []
+        let sceneClassifierAvailable = !observations.isEmpty
+        let signals = ImageSignalExtractor.signals(from: image)
 
-        func score(_ terms: [String]) -> Double {
+        func visionScore(_ vocabulary: Set<String>) -> Double {
             observations.reduce(0.0) { total, item in
-                terms.contains(where: { item.label.contains($0) }) ? total + Double(item.confidence) : total
+                vocabulary.contains(item.label) ? total + Double(item.confidence) : total
             }
         }
 
-        let wire = score(Self.wireTerms)
-        let tree = score(Self.treeTerms)
-        let flood = score(Self.floodTerms)
-        let drain = score(Self.drainTerms)
+        let roadContext = visionScore(Self.roadLabels)
+
+        // Colour evidence is weighted heavily for flooding because that is exactly
+        // where the scene classifier is blind.
+        let floodScore = visionScore(Self.waterLabels) * 1.2 + signals.waterCoverage * 1.6
+        let treeScore = visionScore(Self.treeLabels) * 1.1 + signals.foliageCoverage * 1.0
+        let wireScore = visionScore(Self.wireLabels) * 1.4
+
+        // A blocked drain looks like a *shallow* pool at the kerb, so a mid-range
+        // water reading is weak supporting evidence. It is deliberately small and
+        // suppressed when the frame is full of vegetation: as a flat constant it
+        // outscored a fallen tree whenever the scene classifier was unavailable.
+        let kerbPooling = signals.waterCoverage > 0.12
+            && signals.waterCoverage < 0.34
+            && signals.foliageCoverage < 0.25
+        let drainScore = visionScore(Self.drainLabels) * 1.3 + (kerbPooling ? 0.22 : 0)
 
         let ranked: [(HazardType, Double)] = [
-            (.downedWire, wire),
-            (.downedTree, tree),
-            (.streetFlooding, flood),
-            (.cloggedDrain, drain)
+            (.downedWire, wireScore),
+            (.downedTree, treeScore),
+            (.streetFlooding, floodScore),
+            (.cloggedDrain, drainScore)
         ].sorted { $0.1 > $1.1 }
 
         let best = ranked[0]
-        let hazardType: HazardType = best.1 > 0.08 ? best.0 : .other
-        let confidence = min(best.1, 1.0)
+        let hazardType: HazardType = best.1 >= 0.30 ? best.0 : .other
+        // Normalised so the percentage shown in the UI means something.
+        // Without the scene classifier the scores are colour-only, so the same
+        // raw number represents weaker evidence and is discounted accordingly.
+        let ceiling = sceneClassifierAvailable ? 0.97 : 0.80
+        let confidence = min(best.1 / 1.8, ceiling)
 
         // The safety check the blueprint calls out: wires near a fallen tree or in
-        // standing water get flagged even when they are not the top classification.
-        let utilityLines = wire > 0.05 && (hazardType == .downedWire || hazardType == .downedTree)
+        // standing water are flagged even when they are not the top classification.
+        let utilityLines = wireScore > 0.25 && (hazardType == .downedWire || hazardType == .downedTree)
 
-        let severity: Severity
-        switch confidence {
-        case ..<0.15: severity = .low
-        case ..<0.45: severity = .moderate
-        default: severity = hazardType == .cloggedDrain ? .moderate : .impassable
+        let severity = Self.severity(for: hazardType, signals: signals, confidence: confidence)
+        let roadStatus = Self.roadStatus(for: severity, utilityLines: utilityLines)
+
+        var evidence: [String] = []
+        if signals.waterCoverage > 0.08 {
+            evidence.append("Water-toned surface across \(percent(signals.waterCoverage)) of the lower frame")
         }
-
-        let roadStatus: RoadStatus
-        if utilityLines || severity == .impassable {
-            roadStatus = .impassable
-        } else if severity == .moderate {
-            roadStatus = .oneLaneOpen
+        if signals.foliageCoverage > 0.10 {
+            evidence.append("Vegetation across \(percent(signals.foliageCoverage)) of the frame")
+        }
+        if signals.skyDarkness > 0.55 {
+            evidence.append("Dark, overcast sky")
+        }
+        if roadContext > 0.05 {
+            evidence.append("Roadway scene detected")
+        }
+        if sceneClassifierAvailable {
+            let sceneLabels = observations.prefix(4).map(\.label).joined(separator: ", ")
+            if !sceneLabels.isEmpty {
+                evidence.append("Scene labels: \(sceneLabels)")
+            }
         } else {
-            roadStatus = .clearToPass
+            evidence.append("Scene classifier unavailable here — colour analysis only")
+        }
+        if evidence.isEmpty {
+            evidence.append("No strong hazard signal; please set the fields yourself")
         }
 
-        let labels = observations.prefix(5).map(\.label)
         return HazardAnalysis(
             hazardType: hazardType,
             severity: severity,
@@ -101,11 +155,39 @@ struct OnDeviceTriageEngine: TriageEngine {
                                                 severity: severity,
                                                 roadStatus: roadStatus,
                                                 utilityLines: utilityLines,
-                                                municipality: coordinate.municipality),
+                                                municipality: context.municipality),
             engine: name,
             confidence: confidence,
-            topLabels: Array(labels)
+            evidence: evidence
         )
+    }
+
+    private func percent(_ value: Double) -> String {
+        "\(Int((value * 100).rounded()))%"
+    }
+
+    private static func severity(for hazardType: HazardType,
+                                 signals: ImageSignals,
+                                 confidence: Double) -> Severity {
+        switch hazardType {
+        case .streetFlooding:
+            if signals.waterCoverage > 0.55 { return .impassable }
+            return signals.waterCoverage > 0.28 ? .moderate : .low
+        case .downedWire:
+            return .impassable
+        case .downedTree:
+            // A canopy filling much of the frame means the trunk is across the road.
+            return (confidence > 0.5 || signals.foliageCoverage > 0.35) ? .impassable : .moderate
+        case .cloggedDrain:
+            return .moderate
+        case .other:
+            return .low
+        }
+    }
+
+    private static func roadStatus(for severity: Severity, utilityLines: Bool) -> RoadStatus {
+        if utilityLines || severity == .impassable { return .impassable }
+        return severity == .moderate ? .oneLaneOpen : .clearToPass
     }
 
     private func classify(imageData: Data) async throws -> [(label: String, confidence: Float)] {
@@ -161,7 +243,7 @@ struct RemoteTriageEngine: TriageEngine {
     let name = "StormWatch backend (Gemini)"
     let baseURL: URL
 
-    func analyze(imageData: Data, near coordinate: CLLocationCoordinate2DBox) async throws -> HazardAnalysis {
+    func analyze(image: UIImage, imageData: Data, context: TriageContext) async throws -> HazardAnalysis {
         let endpoint = baseURL.appendingPathComponent("api/v1/analyze-image")
         let boundary = "stormwatch.\(UUID().uuidString)"
 
@@ -193,7 +275,7 @@ struct RemoteTriageEngine: TriageEngine {
             suggestedDescription: payload.suggested_description,
             engine: name,
             confidence: 1.0,
-            topLabels: []
+            evidence: ["Analyzed by Gemini with a strict JSON response schema"]
         )
     }
 
@@ -223,5 +305,21 @@ struct RemoteTriageEngine: TriageEngine {
 private extension Data {
     mutating func append(_ string: String) {
         if let data = string.data(using: .utf8) { append(data) }
+    }
+}
+
+extension UIImage {
+    /// Redraws the image with `.up` orientation.
+    ///
+    /// `cgImage` ignores `imageOrientation`, so a photo straight from the camera
+    /// (normally `.right`) would be analyzed sideways — the sky would land on the
+    /// left edge and every colour signal would be measured in the wrong place.
+    func normalizedUp() -> UIImage {
+        guard imageOrientation != .up else { return self }
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = scale
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            draw(in: CGRect(origin: .zero, size: size))
+        }
     }
 }

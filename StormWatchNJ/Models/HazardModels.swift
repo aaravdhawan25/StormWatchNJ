@@ -22,6 +22,17 @@ enum HazardType: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    /// Compact name for filter chips, where the full label does not fit.
+    var shortLabel: String {
+        switch self {
+        case .cloggedDrain: return "Drains"
+        case .streetFlooding: return "Flooding"
+        case .downedTree: return "Trees"
+        case .downedWire: return "Wires"
+        case .other: return "Other"
+        }
+    }
+
     var symbolName: String {
         switch self {
         case .cloggedDrain: return "drop.triangle.fill"

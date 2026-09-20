@@ -7,93 +7,120 @@ struct RiverGaugeScreen: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                statusSection
-
-                Section("New Jersey river gauges") {
+            ScrollView {
+                LazyVStack(spacing: 10) {
+                    statusBanner
                     ForEach(usgs.stations) { station in
                         NavigationLink {
                             StationDetailView(station: station)
                         } label: {
-                            stationRow(station)
+                            stationCard(station)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .navigationTitle("River Telemetry")
-            .refreshable { await usgs.refresh() }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+            .background(Color(.systemGroupedBackground))
+            .safeAreaInset(edge: .top, spacing: 0) {
+                StormHeader(title: "River Telemetry",
+                            subtitle: "\(usgs.stations.count) NJ gauges · live from USGS") {
                     Button {
                         Task { await usgs.refresh() }
                     } label: {
-                        Image(systemName: "arrow.clockwise")
+                        Image(systemName: "arrow.clockwise.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white.opacity(0.9))
                     }
                     .disabled(usgs.isLoading || usgs.isSimulating)
+                    .accessibilityLabel("Refresh gauges")
                 }
             }
+            .navigationBarHidden(true)
+            .refreshable { await usgs.refresh() }
         }
     }
 
-    private var statusSection: some View {
-        Section {
+    @ViewBuilder
+    private var statusBanner: some View {
+        Group {
             if usgs.isSimulating {
-                Label("Showing simulated nor'easter levels, not live USGS data.",
-                      systemImage: "exclamationmark.triangle.fill")
-                    .font(.footnote)
-                    .foregroundStyle(.orange)
+                banner("Simulated nor'easter levels, not live USGS data.",
+                       symbol: "exclamationmark.triangle.fill", tint: .orange)
             } else if usgs.isLoading {
                 HStack(spacing: 8) {
                     ProgressView()
-                    Text("Polling USGS Water Services…").foregroundStyle(.secondary)
+                    Text("Polling USGS Water Services…").font(.caption)
+                    Spacer(minLength: 0)
                 }
-                .font(.footnote)
+                .stormCard(padding: 12)
             } else if let error = usgs.lastError {
-                Label(error, systemImage: "wifi.exclamationmark")
-                    .font(.footnote)
-                    .foregroundStyle(.orange)
+                banner(error, symbol: "wifi.exclamationmark", tint: .orange)
             } else if let refreshed = usgs.lastRefreshed {
-                Label("Live gage heights, updated \(refreshed.shortRelative).", systemImage: "antenna.radiowaves.left.and.right")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                banner("Live gage heights, updated \(refreshed.shortRelative).",
+                       symbol: "antenna.radiowaves.left.and.right", tint: Theme.teal)
             } else {
-                Text("Pull to load live gage heights.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                banner("Pull to load live gage heights.", symbol: "arrow.down", tint: .secondary)
             }
         }
     }
 
-    private func stationRow(_ station: USGSStation) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(station.stationName)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(2)
-                Spacer(minLength: 8)
+    private func banner(_ text: String, symbol: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol).font(.caption)
+            Text(text).font(.caption)
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(tint)
+        .stormCard(padding: 12)
+    }
+
+    private func stationCard(_ station: USGSStation) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(station.stationName)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                    Text("\(station.county) County")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
                 Text(station.alert.label)
-                    .font(.caption2.weight(.bold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(station.alert.tint.opacity(0.2), in: Capsule())
+                    .font(.system(size: 9, weight: .bold))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(station.alert.tint.opacity(0.18), in: Capsule())
                     .foregroundStyle(station.alert.tint)
             }
 
             FloodStageBar(station: station)
 
-            HStack {
+            HStack(spacing: 4) {
                 if let height = station.currentGaugeHeightFt {
-                    Text(String(format: "%.2f ft now", height))
+                    Text(String(format: "%.2f ft", height))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(station.alert.tint)
                 } else {
-                    Text("No reading")
+                    Text("No reading").font(.caption).foregroundStyle(.secondary)
                 }
-                Text("·")
-                Text(String(format: "flood stage %.1f ft", station.floodStageFt))
+                Text(String(format: "· flood stage %.1f ft", station.floodStageFt))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                if let margin = station.feetBelowFloodStage, margin > 0 {
+                    Text(String(format: "%.1f ft to go", margin))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 4)
+        .stormCard()
     }
 }
 
