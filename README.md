@@ -94,7 +94,7 @@ Then set the backend URL in the DPW tab to `http://127.0.0.1:8000` (simulator) o
 ## Project layout
 
 ```
-StormWatchNJ/
+StormWatch/
 ├── StormWatchNJ.xcodeproj/
 ├── StormWatchNJ/
 │   ├── StormWatchNJApp.swift
