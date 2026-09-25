@@ -152,7 +152,6 @@ struct OnDeviceTriageEngine: TriageEngine {
             utilityLinesInvolved: utilityLines,
             roadStatus: roadStatus,
             suggestedDescription: Self.describe(hazardType: hazardType,
-                                                severity: severity,
                                                 roadStatus: roadStatus,
                                                 utilityLines: utilityLines,
                                                 municipality: context.municipality),
@@ -210,7 +209,6 @@ struct OnDeviceTriageEngine: TriageEngine {
     }
 
     static func describe(hazardType: HazardType,
-                         severity: Severity,
                          roadStatus: RoadStatus,
                          utilityLines: Bool,
                          municipality: String) -> String {
@@ -227,7 +225,16 @@ struct OnDeviceTriageEngine: TriageEngine {
         case .other:
             sentence = "Storm-related road obstruction reported in \(municipality)."
         }
-        sentence += " Severity assessed as \(severity.label.lowercased()); \(roadStatus.label.lowercased())."
+        // Severity has its own field and badge, so naming it here just repeats
+        // itself — "assessed as impassable; impassable."
+        switch roadStatus {
+        case .impassable:
+            sentence += " The road is impassable."
+        case .oneLaneOpen:
+            sentence += " One lane is open; pass with care."
+        case .clearToPass:
+            sentence += " Passable with caution."
+        }
         if utilityLines {
             sentence += " Possible energized wires — treat as a live electrical hazard and dispatch the utility."
         }

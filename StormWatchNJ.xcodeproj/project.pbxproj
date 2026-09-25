@@ -7,59 +7,59 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D2DA44B59AC76EFE6F4CA73A /* StormWatchNJApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 354A720BB13017B039DC8FE9 /* StormWatchNJApp.swift */; };
-		D09D763472DE08E30E04D6A8 /* HazardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9C5AADBFC0A773EDDB02960 /* HazardModels.swift */; };
-		D09824361FBD91478E984423 /* USGSStation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67F6A064B8194981EC93EAD2 /* USGSStation.swift */; };
+		013AD32867D1B4BF1574101A /* SnapTriageScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */; };
+		0412910FF51AB21CDBECD033 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 53BFACF22BD98CA54003260B /* Assets.xcassets */; };
+		239C6139E00BAD5A657050D5 /* ImageSignals.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E813ECE88A253E5023B30 /* ImageSignals.swift */; };
 		23FC822A73D1861D59385CC4 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C73C1F2B4698D1BE310CBA5 /* AppSettings.swift */; };
+		2E580CB7C4495B2FF6044F2B /* NJStationCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF1F02597918FBD8038BCDA /* NJStationCatalog.swift */; };
+		45CBBB9E902E86708FF8516F /* HazardDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E6106A3A12BF34EA376D477 /* HazardDetailView.swift */; };
+		7AF3C0C18FDB6877F1DB5CE0 /* RiverGaugeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */; };
+		7C35DCB5B9FBDEC4EFE78B81 /* NJMunicipalities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9372EAF3EC2DE12472212D92 /* NJMunicipalities.swift */; };
+		8B55C887B7ABD13944326B25 /* HazardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76680C91E5D8D74D337032EA /* HazardStore.swift */; };
+		91E41638AB46AA6635950DAC /* USGSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F09F6D118E8F9910AF6868 /* USGSService.swift */; };
+		9BD17939BCF7EEC3613190A6 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999585FC9A42BF8429D78D56 /* LocationManager.swift */; };
+		A8059C7AF6F73B22BEACB9D4 /* AdminScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F634FBD9CF752F5A98898C5 /* AdminScreen.swift */; };
+		BD801AD40DDB7D30CD09E495 /* SystemPickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */; };
+		C524993FBD9EAE2D2E43FE59 /* MapScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF5F8BB40A8DC58CC02B63FF /* MapScreen.swift */; };
+		C5F995841BC366B8955EA5D8 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6523EBE5719A3730162034B1 /* Components.swift */; };
+		CA1335CF5974A7DE95B5970C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3CDEF50172F1E5BA9252D76 /* Theme.swift */; };
+		D027C9658C7901C9F203E8D1 /* HazardListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 032B7E3FAA542AB614ECB8F0 /* HazardListScreen.swift */; };
+		D09824361FBD91478E984423 /* USGSStation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67F6A064B8194981EC93EAD2 /* USGSStation.swift */; };
+		D09D763472DE08E30E04D6A8 /* HazardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9C5AADBFC0A773EDDB02960 /* HazardModels.swift */; };
+		D2DA44B59AC76EFE6F4CA73A /* StormWatchNJApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 354A720BB13017B039DC8FE9 /* StormWatchNJApp.swift */; };
 		DD4ED714441FC6F10A06D547 /* DemoData.swift in Sources */ = {isa = PBXBuildFile; fileRef = D319D2967CAA388D32DB6178 /* DemoData.swift */; };
 		E7614E15137CE4EA2C36B7DE /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80311DBFE67E2C1960252F53 /* ExportService.swift */; };
-		8B55C887B7ABD13944326B25 /* HazardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76680C91E5D8D74D337032EA /* HazardStore.swift */; };
-		239C6139E00BAD5A657050D5 /* ImageSignals.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E813ECE88A253E5023B30 /* ImageSignals.swift */; };
-		9BD17939BCF7EEC3613190A6 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999585FC9A42BF8429D78D56 /* LocationManager.swift */; };
-		7C35DCB5B9FBDEC4EFE78B81 /* NJMunicipalities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9372EAF3EC2DE12472212D92 /* NJMunicipalities.swift */; };
-		2E580CB7C4495B2FF6044F2B /* NJStationCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF1F02597918FBD8038BCDA /* NJStationCatalog.swift */; };
-		EA37011B87FC462EFF2F9D2E /* TriageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 085303F6A1B386B4F93C951A /* TriageService.swift */; };
-		91E41638AB46AA6635950DAC /* USGSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F09F6D118E8F9910AF6868 /* USGSService.swift */; };
-		A8059C7AF6F73B22BEACB9D4 /* AdminScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F634FBD9CF752F5A98898C5 /* AdminScreen.swift */; };
-		C5F995841BC366B8955EA5D8 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6523EBE5719A3730162034B1 /* Components.swift */; };
-		45CBBB9E902E86708FF8516F /* HazardDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E6106A3A12BF34EA376D477 /* HazardDetailView.swift */; };
-		D027C9658C7901C9F203E8D1 /* HazardListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 032B7E3FAA542AB614ECB8F0 /* HazardListScreen.swift */; };
-		C524993FBD9EAE2D2E43FE59 /* MapScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF5F8BB40A8DC58CC02B63FF /* MapScreen.swift */; };
-		7AF3C0C18FDB6877F1DB5CE0 /* RiverGaugeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */; };
 		E87E7855AB782E70CFC5980A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6CF0302716D86B705C24AF /* RootView.swift */; };
-		013AD32867D1B4BF1574101A /* SnapTriageScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */; };
-		BD801AD40DDB7D30CD09E495 /* SystemPickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */; };
-		CA1335CF5974A7DE95B5970C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3CDEF50172F1E5BA9252D76 /* Theme.swift */; };
-		0412910FF51AB21CDBECD033 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 53BFACF22BD98CA54003260B /* Assets.xcassets */; };
+		EA37011B87FC462EFF2F9D2E /* TriageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 085303F6A1B386B4F93C951A /* TriageService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		354A720BB13017B039DC8FE9 /* StormWatchNJApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StormWatchNJApp.swift; sourceTree = "<group>"; };
-		F9C5AADBFC0A773EDDB02960 /* HazardModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HazardModels.swift; sourceTree = "<group>"; };
-		67F6A064B8194981EC93EAD2 /* USGSStation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USGSStation.swift; sourceTree = "<group>"; };
-		9C73C1F2B4698D1BE310CBA5 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
-		D319D2967CAA388D32DB6178 /* DemoData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoData.swift; sourceTree = "<group>"; };
-		80311DBFE67E2C1960252F53 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
-		76680C91E5D8D74D337032EA /* HazardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HazardStore.swift; sourceTree = "<group>"; };
-		A15E813ECE88A253E5023B30 /* ImageSignals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSignals.swift; sourceTree = "<group>"; };
-		999585FC9A42BF8429D78D56 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
-		9372EAF3EC2DE12472212D92 /* NJMunicipalities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NJMunicipalities.swift; sourceTree = "<group>"; };
-		4DF1F02597918FBD8038BCDA /* NJStationCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NJStationCatalog.swift; sourceTree = "<group>"; };
+		032B7E3FAA542AB614ECB8F0 /* HazardListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HazardListScreen.swift; sourceTree = "<group>"; };
 		085303F6A1B386B4F93C951A /* TriageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriageService.swift; sourceTree = "<group>"; };
 		25F09F6D118E8F9910AF6868 /* USGSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USGSService.swift; sourceTree = "<group>"; };
-		7F634FBD9CF752F5A98898C5 /* AdminScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminScreen.swift; sourceTree = "<group>"; };
-		6523EBE5719A3730162034B1 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		354A720BB13017B039DC8FE9 /* StormWatchNJApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StormWatchNJApp.swift; sourceTree = "<group>"; };
+		4DF1F02597918FBD8038BCDA /* NJStationCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NJStationCatalog.swift; sourceTree = "<group>"; };
 		4E6106A3A12BF34EA376D477 /* HazardDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HazardDetailView.swift; sourceTree = "<group>"; };
-		032B7E3FAA542AB614ECB8F0 /* HazardListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HazardListScreen.swift; sourceTree = "<group>"; };
-		BF5F8BB40A8DC58CC02B63FF /* MapScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapScreen.swift; sourceTree = "<group>"; };
-		72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiverGaugeScreen.swift; sourceTree = "<group>"; };
-		AB6CF0302716D86B705C24AF /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
-		C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapTriageScreen.swift; sourceTree = "<group>"; };
-		599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPickers.swift; sourceTree = "<group>"; };
-		A3CDEF50172F1E5BA9252D76 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		53BFACF22BD98CA54003260B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		B5618D4C73F5589C19DB2591 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPickers.swift; sourceTree = "<group>"; };
+		6523EBE5719A3730162034B1 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		67F6A064B8194981EC93EAD2 /* USGSStation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USGSStation.swift; sourceTree = "<group>"; };
+		72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiverGaugeScreen.swift; sourceTree = "<group>"; };
+		76680C91E5D8D74D337032EA /* HazardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HazardStore.swift; sourceTree = "<group>"; };
+		7F634FBD9CF752F5A98898C5 /* AdminScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminScreen.swift; sourceTree = "<group>"; };
+		80311DBFE67E2C1960252F53 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
+		9372EAF3EC2DE12472212D92 /* NJMunicipalities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NJMunicipalities.swift; sourceTree = "<group>"; };
+		999585FC9A42BF8429D78D56 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		9C73C1F2B4698D1BE310CBA5 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		A0429B9AB4FC93443C23E641 /* StormWatchNJ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StormWatchNJ.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A15E813ECE88A253E5023B30 /* ImageSignals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSignals.swift; sourceTree = "<group>"; };
+		A3CDEF50172F1E5BA9252D76 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		AB6CF0302716D86B705C24AF /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		B5618D4C73F5589C19DB2591 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BF5F8BB40A8DC58CC02B63FF /* MapScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapScreen.swift; sourceTree = "<group>"; };
+		C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapTriageScreen.swift; sourceTree = "<group>"; };
+		D319D2967CAA388D32DB6178 /* DemoData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoData.swift; sourceTree = "<group>"; };
+		F9C5AADBFC0A773EDDB02960 /* HazardModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HazardModels.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -94,6 +94,31 @@
 			path = StormWatchNJ;
 			sourceTree = "<group>";
 		};
+		433D647A17039DC680DEAE8F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A0429B9AB4FC93443C23E641 /* StormWatchNJ.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B8920565B0880BE80B674A5E /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7F634FBD9CF752F5A98898C5 /* AdminScreen.swift */,
+				6523EBE5719A3730162034B1 /* Components.swift */,
+				4E6106A3A12BF34EA376D477 /* HazardDetailView.swift */,
+				032B7E3FAA542AB614ECB8F0 /* HazardListScreen.swift */,
+				BF5F8BB40A8DC58CC02B63FF /* MapScreen.swift */,
+				72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */,
+				AB6CF0302716D86B705C24AF /* RootView.swift */,
+				C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */,
+				599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */,
+				A3CDEF50172F1E5BA9252D76 /* Theme.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
 		CE48F0BFB0FEE3B01A00F29C /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -118,31 +143,6 @@
 				25F09F6D118E8F9910AF6868 /* USGSService.swift */,
 			);
 			path = Services;
-			sourceTree = "<group>";
-		};
-		B8920565B0880BE80B674A5E /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				7F634FBD9CF752F5A98898C5 /* AdminScreen.swift */,
-				6523EBE5719A3730162034B1 /* Components.swift */,
-				4E6106A3A12BF34EA376D477 /* HazardDetailView.swift */,
-				032B7E3FAA542AB614ECB8F0 /* HazardListScreen.swift */,
-				BF5F8BB40A8DC58CC02B63FF /* MapScreen.swift */,
-				72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */,
-				AB6CF0302716D86B705C24AF /* RootView.swift */,
-				C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */,
-				599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */,
-				A3CDEF50172F1E5BA9252D76 /* Theme.swift */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
-		433D647A17039DC680DEAE8F /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				A0429B9AB4FC93443C23E641 /* StormWatchNJ.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -243,6 +243,29 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		71B50D198E64EEE00C2C0E9C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 99H2W68L8M;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = StormWatchNJ/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stormwatchnj.StormWatchNJ;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		A1FEF218C4C57CE118AD5A8A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -250,22 +273,22 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				COPY_PHASE_STRIP = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_NO_COMMON_BLOCKS = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
 				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -276,15 +299,15 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
 				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -296,6 +319,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 99H2W68L8M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = StormWatchNJ/Info.plist;
@@ -310,28 +334,6 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
-		};
-		71B50D198E64EEE00C2C0E9C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = StormWatchNJ/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stormwatchnj.StormWatchNJ;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
 		};
 /* End XCBuildConfiguration section */
 

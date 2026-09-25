@@ -63,7 +63,7 @@ struct AdminScreen: View {
             .confirmationDialog("Reset all reports to the seeded demo set?",
                                 isPresented: $showResetConfirm,
                                 titleVisibility: .visible) {
-                Button("Reset reports", role: .destructive) { store.resetToSeedData() }
+                Button("Reset reports", role: .destructive) { resetEverything() }
                 Button("Cancel", role: .cancel) {}
             }
         }
@@ -188,6 +188,14 @@ struct AdminScreen: View {
     private func export(name: String, contents: String) {
         guard let url = ExportService.temporaryFile(named: name, contents: contents) else { return }
         sheet = .share(url)
+    }
+
+    /// Resetting while the simulation is on would wipe the simulated hazards but
+    /// leave the toggle reading "on", so the switch would be lying about the state
+    /// of the app. Clear the simulation first, then reseed.
+    private func resetEverything() {
+        if settings.simulateNoreaster { toggleStorm(false) }
+        store.resetToSeedData()
     }
 
     private func toggleStorm(_ isOn: Bool) {
