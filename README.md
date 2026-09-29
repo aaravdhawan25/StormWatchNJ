@@ -134,6 +134,33 @@ python3 Tools/generate_xcodeproj.py
 Adding files through Xcode's UI works too — the generator just keeps the file tidy and
 diffable, and lets the project be rebuilt from scratch.
 
+### Sharing to Nextdoor
+
+After you post a report, the app offers to cross-post it to your Nextdoor
+neighborhood. It opens Nextdoor's own post composer with the text written for you
+— hazard, severity, road status, town, and a downed-wire safety line — and you
+review and post it there. The same option lives on every report's detail screen.
+Turn the prompt off in **DPW → Neighborhood sharing**.
+
+This uses Nextdoor's [Share Plugin](https://developer.nextdoor.com/reference/share-plugin)
+(`https://nextdoor.com/sharekit/`), which is an open offering: no API key, no
+approval, no account linking.
+
+**It is not fully automatic, and it cannot be.** Nextdoor's other option, the
+[Publish API](https://developer.nextdoor.com/docs/sharing-overview), can post
+natively, but it requires applying for access and OAuth-linking each user's
+Nextdoor account — and Nextdoor still requires the post to originate from a real
+Nextdoor user (a neighbor, business, or public agency) rather than from the
+partner platform. If StormWatch NJ is ever adopted by a town as a Nextdoor Public
+Agency, `NextdoorShare` is the seam to swap for that API.
+
+Two limitations worth knowing:
+
+- **The photo is not carried over.** The Share Plugin takes text only, which is
+  consistent with the app's promise that photos stay on your device.
+- **The precise coordinate is not included** — only the municipality and your
+  description, since a Nextdoor post is public to the whole neighborhood.
+
 ### Location
 
 The app needs a New Jersey location to show anything — the radius filter is the

@@ -30,6 +30,9 @@ struct SnapTriageScreen: View {
     @State private var showCamera = false
     @State private var showSubmitted = false
     @State private var showCameraDenied = false
+    /// Kept after `reset()` so the Nextdoor offer can compose from it.
+    @State private var lastSubmitted: HazardReport?
+    @State private var nextdoorFailed = false
 
     private var municipality: String {
         NJMunicipalities.nearest(to: location.coordinate).name
@@ -85,9 +88,23 @@ struct SnapTriageScreen: View {
                 }
             }
             .alert("Report submitted", isPresented: $showSubmitted) {
+                if settings.offerNextdoorShare, let report = lastSubmitted {
+                    Button("Share to Nextdoor") {
+                        NextdoorShare.open(report) { opened in
+                            nextdoorFailed = !opened
+                        }
+                    }
+                }
                 Button("Done", role: .cancel) {}
             } message: {
-                Text("Your report is on the map and in the DPW export queue.")
+                Text(settings.offerNextdoorShare
+                     ? "Your report is on the map and in the DPW export queue. Want to tell your neighborhood too? Nextdoor will open with the post written for you — you review it and tap Post there."
+                     : "Your report is on the map and in the DPW export queue.")
+            }
+            .alert("Couldn't open Nextdoor", isPresented: $nextdoorFailed) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Your report is still saved in StormWatch NJ. You can share it later from the report's detail screen.")
             }
             .alert("Camera access is off", isPresented: $showCameraDenied) {
                 Button("Open Settings") {
@@ -432,6 +449,7 @@ struct SnapTriageScreen: View {
                                   longitude: location.coordinate.longitude,
                                   municipality: municipality)
         store.add(report, photo: image)
+        lastSubmitted = report
         reset()
         showSubmitted = true
     }

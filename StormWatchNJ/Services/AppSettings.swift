@@ -17,6 +17,13 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(backendURLString, forKey: Keys.backendURL) }
     }
 
+    /// Whether to offer a Nextdoor cross-post after a report is submitted.
+    /// Only ever *offers* — nothing leaves the app without an explicit tap, and
+    /// the neighbor still confirms inside Nextdoor's own composer.
+    @Published var offerNextdoorShare: Bool {
+        didSet { defaults.set(offerNextdoorShare, forKey: Keys.nextdoor) }
+    }
+
     @Published var simulateNoreaster: Bool = false
 
     private let defaults: UserDefaults
@@ -25,6 +32,7 @@ final class AppSettings: ObservableObject {
         static let radius = "stormwatch.searchRadiusMiles"
         static let useRemote = "stormwatch.useRemoteTriage"
         static let backendURL = "stormwatch.backendURL"
+        static let nextdoor = "stormwatch.offerNextdoorShare"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -33,6 +41,7 @@ final class AppSettings: ObservableObject {
         self.searchRadiusMiles = storedRadius > 0 ? storedRadius : 5.0
         self.useRemoteTriage = defaults.bool(forKey: Keys.useRemote)
         self.backendURLString = defaults.string(forKey: Keys.backendURL) ?? "http://127.0.0.1:8000"
+        self.offerNextdoorShare = defaults.object(forKey: Keys.nextdoor) as? Bool ?? true
     }
 
     var backendURL: URL? {

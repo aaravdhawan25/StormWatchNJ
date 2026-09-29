@@ -8,6 +8,7 @@ struct HazardDetailView: View {
     @EnvironmentObject private var store: HazardStore
     @EnvironmentObject private var location: LocationManager
     @Environment(\.dismiss) private var dismiss
+    @State private var nextdoorFailed = false
 
     /// Read back from the store so upvotes and status changes show immediately.
     private var current: HazardReport {
@@ -78,6 +79,18 @@ struct HazardDetailView: View {
                 .allowsHitTesting(false)
             }
 
+            Section {
+                Button {
+                    NextdoorShare.open(current) { opened in
+                        nextdoorFailed = !opened
+                    }
+                } label: {
+                    Label("Share to Nextdoor", systemImage: "person.2.fill")
+                }
+            } footer: {
+                Text("Opens Nextdoor's post composer with the details filled in. You review it and post there — nothing is sent automatically, and the photo stays on this device.")
+            }
+
             Section("Still there?") {
                 Button {
                     store.upvote(current)
@@ -102,5 +115,10 @@ struct HazardDetailView: View {
         }
         .navigationTitle("Hazard")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Couldn't open Nextdoor", isPresented: $nextdoorFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Check that you have the Nextdoor app or a browser available.")
+        }
     }
 }

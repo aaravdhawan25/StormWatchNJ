@@ -29,6 +29,7 @@ struct AdminScreen: View {
             List {
                 queueSection
                 exportSection
+                sharingSection
                 demoSection
                 backendSection
                 dataSection
@@ -144,6 +145,16 @@ struct AdminScreen: View {
             Text("Demo controls")
         } footer: {
             Text("Adds clearly-labelled simulated hazards and pushes every river gauge past flood stage, so the map and alerts can be filmed on a clear day. Turn it off to return to live USGS data.")
+        }
+    }
+
+    private var sharingSection: some View {
+        Section {
+            Toggle("Offer Nextdoor share after posting", isOn: $settings.offerNextdoorShare)
+        } header: {
+            Text("Neighborhood sharing")
+        } footer: {
+            Text("After you post a report, StormWatch NJ offers to open Nextdoor's composer with the details written for you. You review and post it there — nothing is ever sent to Nextdoor automatically, and the photo is not included.")
         }
     }
 
