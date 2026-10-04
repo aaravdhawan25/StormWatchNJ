@@ -65,6 +65,16 @@ final class HazardStore: ObservableObject {
         persist()
     }
 
+    /// Replaces a stored report with an edited copy, e.g. once its address resolves.
+    func update(_ report: HazardReport) {
+        guard let index = reports.firstIndex(where: { $0.id == report.id }) else { return }
+        // The photo is attached by `add`; an edited copy made before that must not drop it.
+        var merged = report
+        merged.photoFilename = reports[index].photoFilename
+        reports[index] = merged
+        persist()
+    }
+
     func upvote(_ report: HazardReport) {
         guard let index = reports.firstIndex(where: { $0.id == report.id }) else { return }
         reports[index].upvotes += 1

@@ -83,28 +83,48 @@ it off to return to live data.
 
 All seeded and simulated reports are fictional sample data, not records of real incidents.
 
-## Optional backend
+## Backend
 
-The app is fully functional without it. Run it for Gemini triage or to persist
-readings in PostGIS:
+The app is fully functional without it. Run it for Gemini triage and the municipal
+hand-offs:
 
 ```bash
 cd backend
-pip install -r requirements.txt
-export GOOGLE_API_KEY=your-key
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Then set the backend URL in the DPW tab to `http://127.0.0.1:8000` (simulator) or
-`http://<your-mac-ip>:8000` (physical device).
+Set the backend URL in the DPW tab to `http://127.0.0.1:8000` (simulator) or
+`http://<your-mac-ip>:8000` (physical device). Reports are stored in SQLite so there
+is nothing else to install; `schema.sql` is the PostgreSQL + PostGIS production target.
 
-- `main.py` — `/api/v1/analyze-image`, Gemini with a strict JSON response schema
-- `usgs_worker.py` — 15-minute polling worker, prints or persists to PostgreSQL
-- `schema.sql` — PostGIS tables, indexes, station seed, and the `ST_DWithin` query
-- `.env.example` — configuration template
+| Endpoint | What it is |
+| --- | --- |
+| `POST /georeport/v2/requests.json` | Open311: file a report (form-encoded, as the spec requires) |
+| `GET /georeport/v2/requests.json` | Open311: list reports; filter by `status`, `service_code`, dates |
+| `GET /georeport/v2/services.json` | Open311: the hazard types, with attribute definitions per service |
+| `GET /api/v1/hazards/feed.geojson` | Live GIS layer — add by URL in ArcGIS Online or QGIS |
+| `POST /api/v1/integrations/dispatch-alert` | Re-send a stored report to its town |
+| `POST /api/v1/analyze-image` | Gemini triage (needs `GOOGLE_API_KEY`) |
 
-`HazardStore.nearby(_:radiusMiles:)` in the app is the client-side equivalent of the
-`ST_DWithin` five-mile query in `schema.sql`.
+**Forwarding to a town.** Copy `dispatch_config.example.json` to
+`dispatch_config.json` and add a town by ZIP code with a `webhook_url`, an `email`,
+or both. There are no built-in destinations: a town opts in by giving you an
+address. The desk receives the hazard, severity, street address, GPS, a Google Maps
+pin and a plain note that it is an unverified resident report. Email goes through
+[Resend](https://resend.com) and is skipped unless `RESEND_API_KEY` and
+`DISPATCH_FROM_EMAIL` are set.
+
+**Keeping it from becoming a spam relay.** A second report of the same hazard within
+75 m and 6 hours becomes a confirmation on the first ticket rather than a new one.
+`min_severity` and `max_per_hour` cap what a desk receives. Reports outside New
+Jersey are rejected. Set `STORMWATCH_API_KEYS` before exposing the API — unset, it
+runs in open development mode. Reporter name, email and phone are accepted by
+Open311 but discarded here, so the public feed cannot leak who filed a report.
+
+Not implemented: XML responses, placing a report from `address_string` alone (there
+is no geocoder server-side), and an ESRI Shapefile export — ArcGIS and QGIS both read
+the GeoJSON feed directly.
 
 ## Project layout
 
@@ -160,6 +180,45 @@ Two limitations worth knowing:
   consistent with the app's promise that photos stay on your device.
 - **The precise coordinate is not included** — only the municipality and your
   description, since a Nextdoor post is public to the whole neighborhood.
+
+### Utility hand-off for downed wires
+
+When a report involves utility lines — the "Utility lines involved" switch, or the
+Downed Wire hazard type — a red life-safety banner pins itself under the header on
+the report screen and tops that report's detail screen:
+
+- **Stay back first.** "Do not approach. Stay at least 30 feet back" — PSE&G's
+  published distance.
+- **Call 911**, then **Call PSE&G** (1-800-436-7734). Other NJ electric utilities
+  (JCP&L, Atlantic City Electric, Orange & Rockland) are one tap away, because the
+  app cannot reliably know which utility serves an address.
+- **"Tell the dispatcher: 305 Fox Run Dr, Plainsboro, NJ 08536"** — the hazard's
+  street address, reverse-geocoded, so the caller has it to read out.
+
+Nothing is sent automatically. Utilities do not offer write APIs for outage
+tickets, and should not; each button opens the dialer and iOS confirms before a
+call is placed. On a device with no dialer the number is shown instead.
+
+Two things this deliberately does **not** do:
+
+- **It does not text the hazard to PSE&G.** PSE&G's text line (`OUT` to 47734)
+  reports an outage at the address on the texter's *own* account, from a phone
+  already enrolled with `REG`. It cannot report a wire somewhere else, and it takes
+  no address. The app offers it only as "my own power is out".
+- **It does not pass an address to PSE&G's website.** The outage page takes no
+  address parameters, so the link opens the page as-is.
+
+Numbers come from the [NJ OEM utility list](https://www.nj.gov/njoem/plan-prepare/public-utilities.shtml)
+and [PSE&G's downed power line page](https://nj.pseg.com/safetyandreliability/electricsafety/downedpowerlines).
+
+### Public works relay
+
+Turn on **DPW → Send my reports to public works** and each report you post is also
+filed with the backend over [Open311 GeoReport v2](https://wiki.open311.org/GeoReport_v2/),
+the civic standard many 311 systems already speak. From there it joins the open GIS
+feed and is forwarded to the town's public works desk — if that town has opted in.
+It is off by default, the photo is never sent, and a report that could not be
+forwarded can be re-sent from its detail screen.
 
 ### Location
 

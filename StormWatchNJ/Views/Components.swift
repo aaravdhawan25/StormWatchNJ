@@ -15,25 +15,6 @@ struct SeverityBadge: View {
     }
 }
 
-struct WireWarningBanner: View {
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "bolt.trianglebadge.exclamationmark.fill")
-                .font(.body.weight(.bold))
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Utility lines involved").font(.caption.weight(.bold))
-                Text("Treat wires as energized. Call 911 and your utility.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(10)
-        .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .foregroundStyle(.red)
-    }
-}
-
 /// Map pin for a hazard report. Impassable hazards get a soft halo so the
 /// worst problems read first at a glance.
 struct HazardPin: View {

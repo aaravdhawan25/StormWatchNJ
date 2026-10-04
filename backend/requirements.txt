@@ -1,7 +1,8 @@
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-python-multipart==0.0.20
-pydantic==2.10.4
-google-genai==0.8.0
-requests==2.32.3
-psycopg2-binary==2.9.10
+fastapi>=0.115
+uvicorn[standard]>=0.34
+python-multipart>=0.0.20
+pydantic>=2.10
+httpx>=0.27
+google-genai>=0.8
+requests>=2.32
+psycopg2-binary>=2.9

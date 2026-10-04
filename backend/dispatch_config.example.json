@@ -1,0 +1,12 @@
+{
+  "_comment": "Copy to dispatch_config.json (gitignored) and fill in only towns that have agreed to receive reports. Keys are ZIP codes. Each town may have a webhook_url, an email, or both.",
+  "min_severity": "LOW",
+  "max_per_hour": 20,
+  "towns": {
+    "08536": {
+      "name": "Plainsboro Township DPW (example)",
+      "webhook_url": "http://127.0.0.1:9000/dpw-intake",
+      "email": "dpw@example.gov"
+    }
+  }
+}

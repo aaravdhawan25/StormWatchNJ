@@ -32,7 +32,13 @@ struct SnapTriageScreen: View {
     @State private var showCameraDenied = false
     /// Kept after `reset()` so the Nextdoor offer can compose from it.
     @State private var lastSubmitted: HazardReport?
+    /// Street address for the life-safety banner, resolved when it first appears.
+    @State private var hazardAddress: String?
     @State private var nextdoorFailed = false
+
+    private var showsLifeSafetyAlert: Bool {
+        image != nil && UtilityHandoff.isLifeSafetyRisk(type: reportType, utilityLines: utilityLines)
+    }
 
     private var municipality: String {
         NJMunicipalities.nearest(to: location.coordinate).name
@@ -67,6 +73,7 @@ struct SnapTriageScreen: View {
             }
             .background(Color(.systemGroupedBackground))
             .safeAreaInset(edge: .top, spacing: 0) {
+              VStack(spacing: 0) {
                 StormHeader(title: "Snap & Triage",
                             subtitle: image == nil ? "Photograph a hazard to begin" : "Check the details, then post") {
                     if image != nil {
@@ -80,6 +87,18 @@ struct SnapTriageScreen: View {
                         .accessibilityLabel("Start over")
                     }
                 }
+                // Pinned under the header so it stays in view while the form scrolls.
+                if showsLifeSafetyAlert {
+                    LifeSafetyBanner(locationText: hazardAddress ?? "\(municipality), NJ")
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+              }
+              .animation(.easeOut(duration: 0.25), value: showsLifeSafetyAlert)
+            }
+            .task(id: showsLifeSafetyAlert) {
+                guard showsLifeSafetyAlert, hazardAddress == nil else { return }
+                hazardAddress = await AddressResolver.resolve(latitude: location.coordinate.latitude,
+                                                              longitude: location.coordinate.longitude)?.singleLine
             }
             .navigationBarHidden(true)
             .task {
@@ -328,8 +347,6 @@ struct SnapTriageScreen: View {
             }
             .tint(.red)
 
-            if utilityLines { WireWarningBanner() }
-
             VStack(alignment: .leading, spacing: 6) {
                 Text("Description").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 TextEditor(text: $details)
@@ -450,6 +467,9 @@ struct SnapTriageScreen: View {
                                   municipality: municipality)
         store.add(report, photo: image)
         lastSubmitted = report
+        // Address lookup and the municipal relay run after the report is saved,
+        // so posting is instant and still works with no signal.
+        Task { await ReportFollowUp.run(for: report, store: store, settings: settings) }
         reset()
         showSubmitted = true
     }
@@ -459,6 +479,7 @@ struct SnapTriageScreen: View {
         analysis = nil
         photoItem = nil
         errorMessage = nil
+        hazardAddress = nil
         details = ""
         utilityLines = false
         severity = .moderate

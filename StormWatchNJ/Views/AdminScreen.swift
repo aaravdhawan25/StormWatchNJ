@@ -29,6 +29,7 @@ struct AdminScreen: View {
             List {
                 queueSection
                 exportSection
+                publicWorksSection
                 sharingSection
                 demoSection
                 backendSection
@@ -145,6 +146,32 @@ struct AdminScreen: View {
             Text("Demo controls")
         } footer: {
             Text("Adds clearly-labelled simulated hazards and pushes every river gauge past flood stage, so the map and alerts can be filmed on a clear day. Turn it off to return to live USGS data.")
+        }
+    }
+
+    private var feedURLText: String {
+        (settings.backendURL?.appendingPathComponent("api/v1/hazards/feed.geojson").absoluteString)
+            ?? "Set a backend address below"
+    }
+
+    private var publicWorksSection: some View {
+        Section {
+            Toggle("Send my reports to public works", isOn: $settings.forwardToPublicWorks)
+
+            SecureField("Relay API key (if the server requires one)", text: $settings.relayAPIKey)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Live GIS feed").font(.caption).foregroundStyle(.secondary)
+                Text(feedURLText)
+                    .font(.system(.caption, design: .monospaced))
+                    .textSelection(.enabled)
+            }
+        } header: {
+            Text("Public works relay")
+        } footer: {
+            Text("On, each report you post is also filed with the StormWatch backend over the Open311 civic standard. Towns that have opted in receive it at their public works desk. The feed URL can be added to ArcGIS Online or QGIS as a live layer. Photos are never sent.")
         }
     }
 

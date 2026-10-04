@@ -128,6 +128,11 @@ struct HazardReport: Identifiable, Codable, Hashable {
     var upvotes: Int = 1
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
+    /// Street address from reverse geocoding, filled in shortly after posting.
+    var address: String?
+    var postalCode: String?
+    /// Ticket id from the municipal relay, once the report has been forwarded.
+    var relayTicketID: String?
 
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
