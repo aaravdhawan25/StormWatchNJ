@@ -4,6 +4,8 @@
   * /georeport/v2/...                Open311 GeoReport v2 (see open311.py)
   * /api/v1/hazards/feed.geojson     live GIS layer for ArcGIS Online / QGIS
   * /api/v1/integrations/...         municipal dispatch relay (see integrations.py)
+  * /api/v1/auth/...                 accounts and sign-in (see auth.py)
+  * /api/v1/hazards/...              list, vote "not there", remove (see hazards.py)
 
 The iOS app works without this service (it falls back to on-device analysis and
 keeps reports locally). Run it for Gemini triage and the municipal hand-offs:
@@ -26,6 +28,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+import auth
+import hazards
 import integrations
 import open311
 import storage
@@ -39,6 +43,8 @@ async def lifespan(_app):
 
 app = FastAPI(title="StormWatch NJ API", version="1.1.0", lifespan=lifespan)
 app.include_router(open311.router)
+app.include_router(auth.router)
+app.include_router(hazards.router)
 
 # The mobile client is not a browser, but CORS keeps the DPW web export usable
 # from a local dashboard during development.
@@ -116,6 +122,9 @@ def health():
         "gemini_configured": bool(os.environ.get("GOOGLE_API_KEY")),
         "api_keys_required": bool(open311.configured_keys()),
         "dispatch_towns_configured": len(integrations.load_config().get("towns", {})),
+        # False means verification codes are only written to the server log.
+        "email_configured": bool(os.environ.get("RESEND_API_KEY") and os.environ.get("DISPATCH_FROM_EMAIL")),
+        "google_sign_in_configured": bool(os.environ.get("GOOGLE_CLIENT_IDS")),
     }
 
 

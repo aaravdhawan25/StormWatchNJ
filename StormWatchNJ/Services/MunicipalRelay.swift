@@ -22,7 +22,8 @@ enum MunicipalRelay {
     }
 
     /// Returns the `service_request_id` the backend assigned.
-    static func send(_ report: HazardReport, baseURL: URL?, apiKey: String) async throws -> String {
+    static func send(_ report: HazardReport, baseURL: URL?, apiKey: String,
+                     sessionToken: String? = nil) async throws -> String {
         guard let baseURL, baseURL.scheme != nil else { throw RelayError.notConfigured }
 
         var fields: [(String, String)] = [
@@ -44,6 +45,9 @@ enum MunicipalRelay {
         request.timeoutInterval = 15
         // Open311 specifies form encoding for POST, not JSON.
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        // Signed in, the server records who filed the report — which is what later
+        // lets that person, and only that person, remove it.
+        if let sessionToken { request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization") }
         request.httpBody = fields
             .map { "\(formEncode($0.0))=\(formEncode($0.1))" }
             .joined(separator: "&")
@@ -85,7 +89,8 @@ enum MunicipalRelay {
 /// report is already saved locally before any of this starts.
 @MainActor
 enum ReportFollowUp {
-    static func run(for report: HazardReport, store: HazardStore, settings: AppSettings) async {
+    static func run(for report: HazardReport, store: HazardStore,
+                    settings: AppSettings, account: AccountStore) async {
         var current = report
         if current.address == nil,
            let resolved = await AddressResolver.resolve(latitude: report.latitude, longitude: report.longitude) {
@@ -93,19 +98,24 @@ enum ReportFollowUp {
             current.postalCode = resolved.postalCode
             store.update(current)
         }
-        guard settings.forwardToPublicWorks, current.relayTicketID == nil else { return }
-        await forward(current, store: store, settings: settings)
+        // A signed-in resident's reports always go to the shared database: that is
+        // what an account is for. Signed out, it stays the resident's choice.
+        guard settings.forwardToPublicWorks || account.isSignedIn, current.relayTicketID == nil else { return }
+        await forward(current, store: store, settings: settings, account: account)
     }
 
     /// Returns nil on success, or a message to show.
     @discardableResult
-    static func forward(_ report: HazardReport, store: HazardStore, settings: AppSettings) async -> String? {
+    static func forward(_ report: HazardReport, store: HazardStore,
+                        settings: AppSettings, account: AccountStore) async -> String? {
         do {
             var sent = report
             sent.relayTicketID = try await MunicipalRelay.send(report,
                                                                baseURL: settings.backendURL,
-                                                               apiKey: settings.relayAPIKey)
+                                                               apiKey: settings.relayAPIKey,
+                                                               sessionToken: account.token)
             store.update(sent)
+            await HazardSync.pull(into: store, account: account)
             return nil
         } catch {
             return error.localizedDescription

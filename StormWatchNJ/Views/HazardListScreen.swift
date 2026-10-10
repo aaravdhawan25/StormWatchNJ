@@ -6,6 +6,7 @@ struct HazardListScreen: View {
     @EnvironmentObject private var store: HazardStore
     @EnvironmentObject private var location: LocationManager
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var account: AccountStore
 
     @State private var typeFilter: HazardType?
 
@@ -59,6 +60,7 @@ struct HazardListScreen: View {
                         }
                     }
                     .listStyle(.plain)
+                    .refreshable { await HazardSync.pull(into: store, account: account) }
                     .background(Color(.systemGroupedBackground))
                 }
 

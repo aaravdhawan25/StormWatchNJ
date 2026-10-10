@@ -13,6 +13,7 @@ struct SnapTriageScreen: View {
     @EnvironmentObject private var store: HazardStore
     @EnvironmentObject private var location: LocationManager
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var account: AccountStore
 
     @State private var image: UIImage?
     @State private var analysis: HazardAnalysis?
@@ -469,7 +470,7 @@ struct SnapTriageScreen: View {
         lastSubmitted = report
         // Address lookup and the municipal relay run after the report is saved,
         // so posting is instant and still works with no signal.
-        Task { await ReportFollowUp.run(for: report, store: store, settings: settings) }
+        Task { await ReportFollowUp.run(for: report, store: store, settings: settings, account: account) }
         reset()
         showSubmitted = true
     }

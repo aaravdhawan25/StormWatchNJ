@@ -75,6 +75,43 @@ final class HazardStore: ObservableObject {
         persist()
     }
 
+    /// Reconciles local reports with the shared database.
+    ///
+    /// The server is the authority for anything it has a ticket for: fields are
+    /// refreshed, new hazards from other people are added, and a shared report the
+    /// server no longer lists — removed by its reporter, a township, or three
+    /// "not there" votes — is dropped here too. Reports that were never uploaded
+    /// (seeded demo data, anything posted offline) are left alone.
+    func merge(serverHazards: [ServerHazard]) {
+        let listed = Set(serverHazards.map(\.id))
+        for report in reports where report.isShared && !listed.contains(report.relayTicketID ?? "") {
+            if let filename = report.photoFilename {
+                try? fileManager.removeItem(at: photosURL.appendingPathComponent(filename))
+            }
+        }
+        reports.removeAll { $0.isShared && !listed.contains($0.relayTicketID ?? "") }
+
+        for hazard in serverHazards {
+            if let index = reports.firstIndex(where: { $0.relayTicketID == hazard.id }) {
+                hazard.apply(to: &reports[index])
+            } else if let fresh = hazard.makeReport() {
+                reports.append(fresh)
+            }
+        }
+        // A report posted here can be folded server-side into a ticket this device
+        // had already pulled, leaving two local copies of one hazard. Keep the one
+        // with a photo.
+        var seenTickets: Set<String> = []
+        reports = reports
+            .sorted { ($0.photoFilename != nil ? 0 : 1) < ($1.photoFilename != nil ? 0 : 1) }
+            .filter { report in
+                guard let ticket = report.relayTicketID else { return true }
+                return seenTickets.insert(ticket).inserted
+            }
+        reports.sort { $0.createdAt > $1.createdAt }
+        persist()
+    }
+
     func upvote(_ report: HazardReport) {
         guard let index = reports.firstIndex(where: { $0.id == report.id }) else { return }
         reports[index].upvotes += 1

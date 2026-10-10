@@ -44,7 +44,59 @@ CREATE TABLE IF NOT EXISTS hazard_reports (
 );
 CREATE INDEX IF NOT EXISTS idx_hazard_status ON hazard_reports(status);
 CREATE INDEX IF NOT EXISTS idx_hazard_created ON hazard_reports(created_at);
+
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT,              -- NULL for Google-only accounts
+    role TEXT NOT NULL DEFAULT 'resident',   -- 'resident' or 'township'
+    township TEXT,
+    verified INTEGER NOT NULL DEFAULT 0,
+    failed_logins INTEGER NOT NULL DEFAULT 0,
+    locked_until TEXT,
+    created_at TEXT NOT NULL
+);
+
+-- Only a hash of each session token is kept, so a copy of this database does
+-- not hand anyone a working login.
+CREATE TABLE IF NOT EXISTS sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS email_codes (
+    user_id TEXT PRIMARY KEY,
+    code_hash TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    sent_at TEXT NOT NULL
+);
+
+-- One "it's gone" vote per account per hazard.
+CREATE TABLE IF NOT EXISTS hazard_votes (
+    hazard_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (hazard_id, user_id)
+);
+
+-- A removed hazard leaves the live table entirely. This keeps the minimum
+-- needed to answer "what was removed, when, and why" — three accounts being
+-- able to erase a hazard with no trace would be an abuse vector.
+CREATE TABLE IF NOT EXISTS removed_hazards (
+    id TEXT PRIMARY KEY,
+    report_type TEXT NOT NULL,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    created_at TEXT NOT NULL,
+    removed_at TEXT NOT NULL,
+    reason TEXT NOT NULL,            -- 'reporter', 'township', 'community'
+    removed_by TEXT
+);
 """
+
+NOT_THERE_THRESHOLD = 3
 
 
 def now_iso():
@@ -65,6 +117,10 @@ def connect():
 def init():
     with connect() as conn:
         conn.executescript(SCHEMA)
+        # Databases created before accounts existed lack the owner column.
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(hazard_reports)")}
+        if "owner_id" not in columns:
+            conn.execute("ALTER TABLE hazard_reports ADD COLUMN owner_id TEXT")
 
 
 def in_service_area(lat, lon):
@@ -115,12 +171,14 @@ def create(fields):
         conn.execute(
             """INSERT INTO hazard_reports
                (id, report_type, severity, road_status, utility_lines_involved, description,
-                media_url, municipality, address, zipcode, latitude, longitude, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                media_url, municipality, address, zipcode, latitude, longitude, created_at, updated_at,
+                owner_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (report_id, fields["report_type"], fields["severity"], fields["road_status"],
              1 if fields.get("utility_lines_involved") else 0, fields["description"],
              fields.get("media_url"), fields.get("municipality"), fields.get("address"),
-             fields.get("zipcode"), fields["latitude"], fields["longitude"], stamp, stamp),
+             fields.get("zipcode"), fields["latitude"], fields["longitude"], stamp, stamp,
+             fields.get("owner_id")),
         )
     return get(report_id)
 
@@ -170,3 +228,54 @@ def dispatches_in_last_hour(zipcode):
             (zipcode, cutoff),
         ).fetchone()
     return row["n"]
+
+
+# --- Removal -----------------------------------------------------------------
+
+def remove(report_id, reason, removed_by=None):
+    """Deletes a hazard from the live table, leaving an audit row."""
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM hazard_reports WHERE id = ?", (report_id,)).fetchone()
+        if row is None:
+            return False
+        conn.execute(
+            """INSERT OR REPLACE INTO removed_hazards
+               (id, report_type, latitude, longitude, created_at, removed_at, reason, removed_by)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (row["id"], row["report_type"], row["latitude"], row["longitude"],
+             row["created_at"], now_iso(), reason, removed_by),
+        )
+        conn.execute("DELETE FROM hazard_votes WHERE hazard_id = ?", (report_id,))
+        conn.execute("DELETE FROM hazard_reports WHERE id = ?", (report_id,))
+    return True
+
+
+def add_not_there_vote(report_id, user_id):
+    """Records a vote (idempotent per account) and returns the distinct total."""
+    with connect() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO hazard_votes (hazard_id, user_id, created_at) VALUES (?, ?, ?)",
+            (report_id, user_id, now_iso()),
+        )
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM hazard_votes WHERE hazard_id = ?", (report_id,)
+        ).fetchone()
+    return row["n"]
+
+
+def vote_summary(user_id=None):
+    """{hazard_id: (vote_count, this_user_voted)} for every hazard with votes."""
+    with connect() as conn:
+        rows = conn.execute("SELECT hazard_id, user_id FROM hazard_votes").fetchall()
+    summary = {}
+    for row in rows:
+        count, mine = summary.get(row["hazard_id"], (0, False))
+        summary[row["hazard_id"]] = (count + 1, mine or row["user_id"] == user_id)
+    return summary
+
+
+def set_status(report_id, status):
+    with connect() as conn:
+        conn.execute("UPDATE hazard_reports SET status = ?, updated_at = ? WHERE id = ?",
+                     (status, now_iso(), report_id))
+    return get(report_id)

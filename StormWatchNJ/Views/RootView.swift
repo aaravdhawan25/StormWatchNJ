@@ -3,6 +3,9 @@ import SwiftUI
 struct RootView: View {
     @EnvironmentObject private var usgs: USGSService
     @EnvironmentObject private var location: LocationManager
+    @EnvironmentObject private var store: HazardStore
+    @EnvironmentObject private var account: AccountStore
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab = RootView.initialTab
 
@@ -42,7 +45,14 @@ struct RootView: View {
         .task {
             location.requestPermission()
             location.startUpdates()
+            await account.restore()
+            await HazardSync.pull(into: store, account: account)
             await usgs.refresh()
+        }
+        // Someone else may have removed or voted on a hazard while the app was away.
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await HazardSync.pull(into: store, account: account) }
         }
     }
 }

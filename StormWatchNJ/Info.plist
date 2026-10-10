@@ -20,15 +20,28 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>GoogleClientID</key>
+	<string></string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>UILaunchScreen</key>
-	<dict/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>StormWatch NJ uses the camera so you can photograph a flooded street, blocked storm drain or downed tree. Photos stay on your device.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>StormWatch NJ uses your location to show hazards within a few miles of you and to tag a report you choose to submit. Your location is never uploaded on its own.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>StormWatch NJ lets you attach an existing storm photo to a hazard report.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<true/>
 	</dict>
+	<key>UILaunchScreen</key>
+	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -42,17 +55,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>StormWatch NJ uses the camera so you can photograph a flooded street, blocked storm drain or downed tree. Photos stay on your device.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>StormWatch NJ lets you attach an existing storm photo to a hazard report.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>StormWatch NJ uses your location to show hazards within a few miles of you and to tag a report you choose to submit. Your location is never uploaded on its own.</string>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<!-- Allows the optional local FastAPI backend to be reached over plain HTTP during development. -->
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-	</dict>
 </dict>
 </plist>

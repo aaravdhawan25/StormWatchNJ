@@ -105,6 +105,11 @@ is nothing else to install; `schema.sql` is the PostgreSQL + PostGIS production 
 | `GET /georeport/v2/services.json` | Open311: the hazard types, with attribute definitions per service |
 | `GET /api/v1/hazards/feed.geojson` | Live GIS layer — add by URL in ArcGIS Online or QGIS |
 | `POST /api/v1/integrations/dispatch-alert` | Re-send a stored report to its town |
+| `POST /api/v1/auth/signup`, `/verify`, `/login`, `/google` | Accounts; `GET /api/v1/auth/township-domains` lists recognised towns |
+| `GET /api/v1/hazards` | The shared hazard list the app syncs from |
+| `POST /api/v1/hazards/{id}/not-there` | Vote that a hazard is gone; the third distinct vote removes it |
+| `DELETE /api/v1/hazards/{id}` | Remove — reporter or township only |
+| `PATCH /api/v1/hazards/{id}/status` | Crew status — township only |
 | `POST /api/v1/analyze-image` | Gemini triage (needs `GOOGLE_API_KEY`) |
 
 **Forwarding to a town.** Copy `dispatch_config.example.json` to
@@ -180,6 +185,61 @@ Two limitations worth knowing:
   consistent with the app's promise that photos stay on your device.
 - **The precise coordinate is not included** — only the municipality and your
   description, since a Nextdoor post is public to the whole neighborhood.
+
+### Accounts and removing hazards
+
+Sign in from **DPW → Sign in or create an account**. Accounts live on the backend,
+so this needs it running.
+
+A hazard comes off the map — for everyone — in three ways:
+
+| Who | How |
+| --- | --- |
+| The person who reported it | **Remove for everyone** on the report |
+| Three different people | Each taps **It's not there anymore**; the third vote removes it |
+| A township account | **Remove for everyone**, and can set crew status |
+
+Voting needs an account so that "three people" means three people: one vote per
+account, and the reporter cannot vote on their own report. A removed hazard is
+deleted from the live table and disappears from the app, the Open311 endpoint and
+the GeoJSON feed; a one-line audit record (what, where, when, why) is kept, because
+three accounts being able to erase a hazard without trace would invite abuse.
+
+Reports that were never uploaded — the seeded demo data, anything posted while
+signed out with the relay off — exist only on that device and can be removed there.
+
+**Resident accounts** use an email and password, confirmed with a six-digit code
+sent to that address.
+
+**Township accounts** are for municipal staff. The email must be on one of the 19
+recognised municipal domains in `backend/townships.py`, matched exactly — so
+`a@princetonnj.gov.example.com` and `a@notprincetonnj.gov` are refused. The domain
+check alone proves nothing, since anyone can type someone else's address; the
+account only works once its owner enters the code emailed to it. The domain list
+was supplied for this project and has not been checked town by town — review it
+before real use.
+
+**Verification email** is sent through [Resend](https://resend.com) when
+`RESEND_API_KEY` and `DISPATCH_FROM_EMAIL` are set. Without them the code is written
+to the server log instead, which is fine on your own laptop and useless anywhere
+else — `/health` reports `email_configured` so you can tell.
+
+**Google sign-in** is built but switched off until you give it an OAuth client,
+which has to come from your own Google account:
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
+   create an OAuth client ID of type **iOS** with bundle ID
+   `com.stormwatchnj.StormWatchNJ`.
+2. Put the client ID in `StormWatchNJ/Info.plist` under `GoogleClientID`.
+3. Set the same ID as `GOOGLE_CLIENT_IDS` for the backend.
+
+The "Continue with Google" button appears once step 2 is done. This path has not
+been run end to end, because it cannot be without that client ID.
+
+Passwords are stored as salted scrypt hashes and session tokens only as hashes; the
+app keeps its token in the Keychain. Five wrong passwords lock an account for 15
+minutes, and a code dies after five wrong guesses. Run the backend behind HTTPS
+anywhere but your own machine.
 
 ### Utility hand-off for downed wires
 

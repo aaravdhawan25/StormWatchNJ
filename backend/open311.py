@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 
+import auth
 import integrations
 import storage
 
@@ -200,6 +201,9 @@ async def create_request(request: Request, background_tasks: BackgroundTasks):
         "zipcode": zipcode or None,
         "latitude": lat,
         "longitude": lon,
+        # Filed by a signed-in user when the app sends its session token; that
+        # is what later lets them remove their own report.
+        "owner_id": (auth.optional_user(request) or {}).get("id"),
     })
 
     background_tasks.add_task(integrations.forward_to_agency_dispatch, report["id"])

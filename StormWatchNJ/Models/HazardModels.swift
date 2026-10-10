@@ -133,6 +133,14 @@ struct HazardReport: Identifiable, Codable, Hashable {
     var postalCode: String?
     /// Ticket id from the municipal relay, once the report has been forwarded.
     var relayTicketID: String?
+    /// Server-side facts, present only for reports in the shared database.
+    /// Optional so reports saved by older builds still decode.
+    var isMine: Bool?
+    var notThereVotes: Int?
+    var iVotedNotThere: Bool?
+
+    /// Whether this report lives in the shared database rather than only here.
+    var isShared: Bool { relayTicketID != nil }
 
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)

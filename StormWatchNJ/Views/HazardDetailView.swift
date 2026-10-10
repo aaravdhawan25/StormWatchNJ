@@ -8,10 +8,17 @@ struct HazardDetailView: View {
     @EnvironmentObject private var store: HazardStore
     @EnvironmentObject private var location: LocationManager
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var account: AccountStore
     @Environment(\.dismiss) private var dismiss
     @State private var nextdoorFailed = false
     @State private var relayMessage: String?
     @State private var isForwarding = false
+    @State private var isActing = false
+    @State private var actionError: String?
+    @State private var showAccount = false
+
+    private var isTownship: Bool { account.account?.isTownship == true }
+    private var canRemoveShared: Bool { current.isMine == true || isTownship }
 
     private var showsLifeSafetyAlert: Bool {
         current.status != .resolved
@@ -130,23 +137,51 @@ struct HazardDetailView: View {
                     Label("Confirm this hazard", systemImage: "hand.thumbsup.fill")
                 }
 
-                Picker("Crew status", selection: Binding(
-                    get: { current.status },
-                    set: { store.setStatus($0, for: current) }
-                )) {
-                    ForEach(ReportStatus.allCases) { Text($0.label).tag($0) }
-                }
-
-                Button(role: .destructive) {
-                    store.delete(current)
-                    dismiss()
-                } label: {
-                    Label("Remove report", systemImage: "trash")
+                // Crew status is a township's call once a report is shared; a
+                // report that only exists on this device is this device's to edit.
+                if !current.isShared {
+                    Picker("Crew status", selection: Binding(
+                        get: { current.status },
+                        set: { store.setStatus($0, for: current) }
+                    )) {
+                        ForEach(ReportStatus.allCases) { Text($0.label).tag($0) }
+                    }
+                } else if isTownship {
+                    Picker("Crew status", selection: Binding(
+                        get: { current.status },
+                        set: { status in act { try await HazardSync.setStatus(status, for: current, store: store, account: account) } }
+                    )) {
+                        ForEach(ReportStatus.allCases) { Text($0.label).tag($0) }
+                    }
+                    .disabled(isActing)
                 }
             }
+
+            removalSection
         }
         .navigationTitle("Hazard")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("That didn't work", isPresented: Binding(
+            get: { actionError != nil }, set: { if !$0 { actionError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(actionError ?? "")
+        }
+        .sheet(isPresented: $showAccount) {
+            NavigationStack {
+                AccountScreen()
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showAccount = false }
+                        }
+                    }
+            }
+        }
+        // Signing in from the sheet closes it, ready to vote.
+        .onChange(of: account.isSignedIn) { _, signedIn in
+            if signedIn { showAccount = false }
+        }
         .alert("Couldn't reach the relay", isPresented: Binding(
             get: { relayMessage != nil }, set: { if !$0 { relayMessage = nil } }
         )) {
@@ -173,7 +208,7 @@ struct HazardDetailView: View {
                 Button {
                     isForwarding = true
                     Task {
-                        relayMessage = await ReportFollowUp.forward(current, store: store, settings: settings)
+                        relayMessage = await ReportFollowUp.forward(current, store: store, settings: settings, account: account)
                         isForwarding = false
                     }
                 } label: {
@@ -183,6 +218,78 @@ struct HazardDetailView: View {
             }
         } footer: {
             Text("Files this report with the StormWatch backend over Open311. Towns that have opted in receive it at their public works desk; every report joins the open GIS feed. The photo is not sent.")
+        }
+    }
+
+    /// How this hazard comes off the map, which depends on who is looking at it.
+    @ViewBuilder
+    private var removalSection: some View {
+        let votes = current.notThereVotes ?? 0
+        Section {
+            if !current.isShared {
+                Button(role: .destructive) {
+                    store.delete(current)
+                    dismiss()
+                } label: {
+                    Label("Remove report", systemImage: "trash")
+                }
+            } else if canRemoveShared {
+                Button(role: .destructive) {
+                    act(thenDismiss: true) { try await HazardSync.remove(current, store: store, account: account) }
+                } label: {
+                    Label("Remove for everyone", systemImage: "trash")
+                }
+                .disabled(isActing)
+            } else {
+                Button {
+                    guard account.isSignedIn else {
+                        showAccount = true
+                        return
+                    }
+                    act {
+                        if try await HazardSync.voteNotThere(current, store: store, account: account) { dismiss() }
+                    }
+                } label: {
+                    Label(current.iVotedNotThere == true ? "You said it's gone" : "It's not there anymore",
+                          systemImage: current.iVotedNotThere == true ? "checkmark.circle.fill" : "eye.slash.fill")
+                }
+                .disabled(isActing || current.iVotedNotThere == true)
+
+                LabeledContent("Said gone") {
+                    Text("\(votes) of \(Self.votesToRemove)")
+                        .monospacedDigit()
+                        .foregroundStyle(votes > 0 ? .orange : .secondary)
+                }
+            }
+        } header: {
+            Text("Gone?")
+        } footer: {
+            if !current.isShared {
+                Text("This report only exists on this device.")
+            } else if current.isMine == true {
+                Text("You reported this, so you can take it down. It comes off the map for everyone.")
+            } else if isTownship {
+                Text("As township staff you can take this down once it is cleared. It comes off the map for everyone.")
+            } else {
+                Text("When \(Self.votesToRemove) different people say a hazard is gone, it comes off the map for everyone."
+                     + (account.isSignedIn ? "" : " Sign in to vote."))
+            }
+        }
+    }
+
+    /// Mirrors the server's threshold, which is what actually decides removal.
+    private static let votesToRemove = 3
+
+    private func act(thenDismiss: Bool = false, _ action: @escaping () async throws -> Void) {
+        isActing = true
+        Task {
+            do {
+                try await action()
+                if thenDismiss { dismiss() }
+            } catch {
+                actionError = error.localizedDescription
+            }
+            isActing = false
         }
     }
 }

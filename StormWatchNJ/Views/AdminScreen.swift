@@ -7,6 +7,7 @@ struct AdminScreen: View {
     @EnvironmentObject private var store: HazardStore
     @EnvironmentObject private var usgs: USGSService
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var account: AccountStore
 
     /// One sheet state for share and preview — stacking two `.sheet` modifiers on
     /// the same view does not reliably present both.
@@ -27,6 +28,7 @@ struct AdminScreen: View {
     var body: some View {
         NavigationStack {
             List {
+                accountSection
                 queueSection
                 exportSection
                 publicWorksSection
@@ -149,6 +151,32 @@ struct AdminScreen: View {
         }
     }
 
+    private var accountSection: some View {
+        Section {
+            NavigationLink {
+                AccountScreen()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: account.account?.isTownship == true
+                          ? "building.columns.fill" : "person.crop.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(Theme.teal)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(account.account?.email ?? "Sign in or create an account")
+                            .font(.subheadline.weight(.semibold))
+                        Text(accountSubtitle).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private var accountSubtitle: String {
+        guard let current = account.account else { return "Residents and township staff" }
+        return current.isTownship ? "\(current.township ?? "Township") · verified staff" : "Resident"
+    }
+
     private var feedURLText: String {
         (settings.backendURL?.appendingPathComponent("api/v1/hazards/feed.geojson").absoluteString)
             ?? "Set a backend address below"
@@ -171,7 +199,7 @@ struct AdminScreen: View {
         } header: {
             Text("Public works relay")
         } footer: {
-            Text("On, each report you post is also filed with the StormWatch backend over the Open311 civic standard. Towns that have opted in receive it at their public works desk. The feed URL can be added to ArcGIS Online or QGIS as a live layer. Photos are never sent.")
+            Text("Signed in, your reports always go to the shared map; signed out, this switch decides. Reports are filed with the StormWatch backend over the Open311 civic standard, and towns that have opted in receive them at their public works desk. The feed URL can be added to ArcGIS Online or QGIS as a live layer. Photos are never sent.")
         }
     }
 
