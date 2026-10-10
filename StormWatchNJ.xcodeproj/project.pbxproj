@@ -31,6 +31,7 @@
 		A6F6C2ADB8F3D9A54B157EBB /* UtilityHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBF319979F22B24771FE0D59 /* UtilityHandoff.swift */; };
 		7B81FC9D58B2E12F9E76CCAE /* AccountScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD095B611126894613FC8EB3 /* AccountScreen.swift */; };
 		A8059C7AF6F73B22BEACB9D4 /* AdminScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F634FBD9CF752F5A98898C5 /* AdminScreen.swift */; };
+		42E4EB5D14FDFCEC1241051F /* AuthScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C793608A0A0F21E00E8F81E /* AuthScreen.swift */; };
 		C5F995841BC366B8955EA5D8 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6523EBE5719A3730162034B1 /* Components.swift */; };
 		45CBBB9E902E86708FF8516F /* HazardDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E6106A3A12BF34EA376D477 /* HazardDetailView.swift */; };
 		D027C9658C7901C9F203E8D1 /* HazardListScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 032B7E3FAA542AB614ECB8F0 /* HazardListScreen.swift */; };
@@ -39,8 +40,10 @@
 		7AF3C0C18FDB6877F1DB5CE0 /* RiverGaugeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */; };
 		E87E7855AB782E70CFC5980A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6CF0302716D86B705C24AF /* RootView.swift */; };
 		013AD32867D1B4BF1574101A /* SnapTriageScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */; };
+		2B78B3BF9190624EA15D9FD5 /* StormGraphics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEEADAAA5A19FCB754810041 /* StormGraphics.swift */; };
 		BD801AD40DDB7D30CD09E495 /* SystemPickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */; };
 		CA1335CF5974A7DE95B5970C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3CDEF50172F1E5BA9252D76 /* Theme.swift */; };
+		16B550F8B39287319219E6C7 /* WelcomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69520F4333EB67CB6CC678B7 /* WelcomeScreen.swift */; };
 		0412910FF51AB21CDBECD033 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 53BFACF22BD98CA54003260B /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -69,6 +72,7 @@
 		EBF319979F22B24771FE0D59 /* UtilityHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UtilityHandoff.swift; sourceTree = "<group>"; };
 		FD095B611126894613FC8EB3 /* AccountScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountScreen.swift; sourceTree = "<group>"; };
 		7F634FBD9CF752F5A98898C5 /* AdminScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminScreen.swift; sourceTree = "<group>"; };
+		3C793608A0A0F21E00E8F81E /* AuthScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthScreen.swift; sourceTree = "<group>"; };
 		6523EBE5719A3730162034B1 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		4E6106A3A12BF34EA376D477 /* HazardDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HazardDetailView.swift; sourceTree = "<group>"; };
 		032B7E3FAA542AB614ECB8F0 /* HazardListScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HazardListScreen.swift; sourceTree = "<group>"; };
@@ -77,8 +81,10 @@
 		72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiverGaugeScreen.swift; sourceTree = "<group>"; };
 		AB6CF0302716D86B705C24AF /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapTriageScreen.swift; sourceTree = "<group>"; };
+		AEEADAAA5A19FCB754810041 /* StormGraphics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StormGraphics.swift; sourceTree = "<group>"; };
 		599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPickers.swift; sourceTree = "<group>"; };
 		A3CDEF50172F1E5BA9252D76 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		69520F4333EB67CB6CC678B7 /* WelcomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeScreen.swift; sourceTree = "<group>"; };
 		53BFACF22BD98CA54003260B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B5618D4C73F5589C19DB2591 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A0429B9AB4FC93443C23E641 /* StormWatchNJ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StormWatchNJ.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -156,6 +162,7 @@
 			children = (
 				FD095B611126894613FC8EB3 /* AccountScreen.swift */,
 				7F634FBD9CF752F5A98898C5 /* AdminScreen.swift */,
+				3C793608A0A0F21E00E8F81E /* AuthScreen.swift */,
 				6523EBE5719A3730162034B1 /* Components.swift */,
 				4E6106A3A12BF34EA376D477 /* HazardDetailView.swift */,
 				032B7E3FAA542AB614ECB8F0 /* HazardListScreen.swift */,
@@ -164,8 +171,10 @@
 				72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */,
 				AB6CF0302716D86B705C24AF /* RootView.swift */,
 				C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */,
+				AEEADAAA5A19FCB754810041 /* StormGraphics.swift */,
 				599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */,
 				A3CDEF50172F1E5BA9252D76 /* Theme.swift */,
+				69520F4333EB67CB6CC678B7 /* WelcomeScreen.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -271,6 +280,7 @@
 				A6F6C2ADB8F3D9A54B157EBB /* UtilityHandoff.swift in Sources */,
 				7B81FC9D58B2E12F9E76CCAE /* AccountScreen.swift in Sources */,
 				A8059C7AF6F73B22BEACB9D4 /* AdminScreen.swift in Sources */,
+				42E4EB5D14FDFCEC1241051F /* AuthScreen.swift in Sources */,
 				C5F995841BC366B8955EA5D8 /* Components.swift in Sources */,
 				45CBBB9E902E86708FF8516F /* HazardDetailView.swift in Sources */,
 				D027C9658C7901C9F203E8D1 /* HazardListScreen.swift in Sources */,
@@ -279,8 +289,10 @@
 				7AF3C0C18FDB6877F1DB5CE0 /* RiverGaugeScreen.swift in Sources */,
 				E87E7855AB782E70CFC5980A /* RootView.swift in Sources */,
 				013AD32867D1B4BF1574101A /* SnapTriageScreen.swift in Sources */,
+				2B78B3BF9190624EA15D9FD5 /* StormGraphics.swift in Sources */,
 				BD801AD40DDB7D30CD09E495 /* SystemPickers.swift in Sources */,
 				CA1335CF5974A7DE95B5970C /* Theme.swift in Sources */,
+				16B550F8B39287319219E6C7 /* WelcomeScreen.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

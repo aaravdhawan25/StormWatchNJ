@@ -161,15 +161,14 @@ struct MapScreen: View {
                 sheet = .report(report)
             } label: {
                 HStack(spacing: 11) {
-                    ZStack {
-                        Circle().fill(report.severity.tint.opacity(0.18)).frame(width: 40, height: 40)
-                        Image(systemName: report.reportType.symbolName)
-                            .foregroundStyle(report.severity.tint)
-                    }
+                    HazardGlyph(type: report.reportType, size: 42)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(report.reportType.label)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                        HStack(spacing: 6) {
+                            Text(report.reportType.label)
+                                .font(.system(.subheadline, design: .rounded).weight(.bold))
+                                .foregroundStyle(.primary)
+                            SeverityBadge(severity: report.severity, compact: true)
+                        }
                         Text(String(format: "%.1f mi away · %@",
                                     store.distanceMiles(to: report, from: location.coordinate),
                                     report.municipality))

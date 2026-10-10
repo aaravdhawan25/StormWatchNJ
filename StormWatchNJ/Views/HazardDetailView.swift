@@ -15,7 +15,6 @@ struct HazardDetailView: View {
     @State private var isForwarding = false
     @State private var isActing = false
     @State private var actionError: String?
-    @State private var showAccount = false
 
     private var isTownship: Bool { account.account?.isTownship == true }
     private var canRemoveShared: Bool { current.isMine == true || isTownship }
@@ -48,17 +47,29 @@ struct HazardDetailView: View {
                         .clipped()
                         .listRowInsets(EdgeInsets())
                 }
+            } else {
+                Section {
+                    ZStack {
+                        LinearGradient(colors: current.reportType.gradient,
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                        WaveShape(phase: 1.0, amplitude: 10, cycles: 1.2)
+                            .fill(.white.opacity(0.12))
+                            .frame(height: 60)
+                            .frame(maxHeight: .infinity, alignment: .bottom)
+                        Image(systemName: current.reportType.symbolName)
+                            .font(.system(size: 54, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
+                    }
+                    .frame(height: 140)
+                    .listRowInsets(EdgeInsets())
+                }
             }
 
             Section {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 10) {
-                        ZStack {
-                            Circle().fill(current.severity.tint.opacity(0.18)).frame(width: 42, height: 42)
-                            Image(systemName: current.reportType.symbolName)
-                                .font(.title3)
-                                .foregroundStyle(current.severity.tint)
-                        }
+                        HazardGlyph(type: current.reportType, size: 46)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(current.reportType.label).font(.headline)
                             Text(current.municipality).font(.caption).foregroundStyle(.secondary)
@@ -168,20 +179,6 @@ struct HazardDetailView: View {
         } message: {
             Text(actionError ?? "")
         }
-        .sheet(isPresented: $showAccount) {
-            NavigationStack {
-                AccountScreen()
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") { showAccount = false }
-                        }
-                    }
-            }
-        }
-        // Signing in from the sheet closes it, ready to vote.
-        .onChange(of: account.isSignedIn) { _, signedIn in
-            if signedIn { showAccount = false }
-        }
         .alert("Couldn't reach the relay", isPresented: Binding(
             get: { relayMessage != nil }, set: { if !$0 { relayMessage = nil } }
         )) {
@@ -242,10 +239,6 @@ struct HazardDetailView: View {
                 .disabled(isActing)
             } else {
                 Button {
-                    guard account.isSignedIn else {
-                        showAccount = true
-                        return
-                    }
                     act {
                         if try await HazardSync.voteNotThere(current, store: store, account: account) { dismiss() }
                     }
@@ -271,8 +264,7 @@ struct HazardDetailView: View {
             } else if isTownship {
                 Text("As township staff you can take this down once it is cleared. It comes off the map for everyone.")
             } else {
-                Text("When \(Self.votesToRemove) different people say a hazard is gone, it comes off the map for everyone."
-                     + (account.isSignedIn ? "" : " Sign in to vote."))
+                Text("When \(Self.votesToRemove) different people say a hazard is gone, it comes off the map for everyone.")
             }
         }
     }

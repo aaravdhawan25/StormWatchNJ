@@ -16,7 +16,17 @@ struct StormWatchNJApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            Group {
+                if account.isSignedIn {
+                    RootView()
+                        .transition(.opacity)
+                } else {
+                    WelcomeScreen()
+                        .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.35), value: account.isSignedIn)
+            .task { await account.restore() }
                 .environmentObject(store)
                 .environmentObject(usgs)
                 .environmentObject(location)

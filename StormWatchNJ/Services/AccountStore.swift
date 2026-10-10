@@ -30,11 +30,20 @@ final class AccountStore: ObservableObject {
 
     private let settings: AppSettings
     private static let tokenKey = "token"
+    private static let accountKey = "account"
     private(set) var token: String?
 
     init(settings: AppSettings) {
         self.settings = settings
         self.token = Keychain.read(Self.tokenKey)
+        // Sign-in is required, so the last known account is restored immediately:
+        // someone already signed in should not be locked out of the map because
+        // they opened the app in a basement with no signal. `restore()` then
+        // checks the session with the server and signs out if it was revoked.
+        if token != nil, let saved = Keychain.read(Self.accountKey),
+           let account = try? JSONDecoder().decode(Account.self, from: Data(saved.utf8)) {
+            self.account = account
+        }
     }
 
     var isSignedIn: Bool { account != nil }
@@ -52,7 +61,8 @@ final class AccountStore: ObservableObject {
     func restore() async {
         guard token != nil, let api else { return }
         do {
-            account = try await api.send("GET", "api/v1/auth/me")
+            let current: Account = try await api.send("GET", "api/v1/auth/me")
+            remember(current)
         } catch let error as APIError where error.status == 401 {
             clearSession()
         } catch {
@@ -114,13 +124,21 @@ final class AccountStore: ObservableObject {
     private func adopt(_ session: Session) {
         token = session.token
         Keychain.save(session.token, for: Self.tokenKey)
-        account = session.user
+        remember(session.user)
         pendingEmail = nil
+    }
+
+    private func remember(_ current: Account) {
+        account = current
+        if let data = try? JSONEncoder().encode(current), let text = String(data: data, encoding: .utf8) {
+            Keychain.save(text, for: Self.accountKey)
+        }
     }
 
     private func clearSession() {
         token = nil
         Keychain.delete(Self.tokenKey)
+        Keychain.delete(Self.accountKey)
         account = nil
         pendingEmail = nil
     }

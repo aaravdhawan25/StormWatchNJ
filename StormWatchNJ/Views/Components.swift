@@ -132,7 +132,7 @@ struct HazardCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
                         Text(report.reportType.label)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.system(.subheadline, design: .rounded).weight(.bold))
                             .lineLimit(1)
                         Spacer(minLength: 0)
                         SeverityBadge(severity: report.severity, compact: true)
@@ -171,9 +171,10 @@ struct HazardCard: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
-                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous))
+        .shadow(color: .black.opacity(0.07), radius: 10, y: 4)
     }
 
     @ViewBuilder
@@ -183,16 +184,9 @@ struct HazardCard: View {
                 .resizable()
                 .scaledToFill()
                 .frame(width: 52, height: 52)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         } else {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(report.severity.tint.opacity(0.15))
-                    .frame(width: 52, height: 52)
-                Image(systemName: report.reportType.symbolName)
-                    .font(.title3)
-                    .foregroundStyle(report.severity.tint)
-            }
+            HazardGlyph(type: report.reportType, size: 52)
         }
     }
 }

@@ -159,20 +159,36 @@ struct SnapTriageScreen: View {
 
     private var sourceChooser: some View {
         VStack(spacing: 14) {
-            VStack(spacing: 10) {
-                Image(systemName: "camera.viewfinder")
-                    .font(.system(size: 44))
-                    .foregroundStyle(Theme.teal)
-                Text("Report a storm hazard")
-                    .font(.headline)
-                Text("Take a photo and the app fills in the hazard type, severity and road status. You confirm before anything is posted.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+            VStack(spacing: 0) {
+                ZStack {
+                    StormBackdrop(animated: false, waterLevel: 0.34)
+                    VStack(spacing: 10) {
+                        Image(systemName: "camera.viewfinder")
+                            .font(.system(size: 46, weight: .medium))
+                            .foregroundStyle(.white)
+                            .shadow(color: Theme.brightTeal.opacity(0.8), radius: 12)
+                        Text("Report a storm hazard")
+                            .font(.system(.title3, design: .rounded).weight(.bold))
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.bottom, 26)
+                }
+                .frame(height: 170)
+                .clipped()
+
+                HStack(spacing: 0) {
+                    step("camera.fill", "Snap")
+                    stepArrow
+                    step("sparkles", "AI fills it in")
+                    stepArrow
+                    step("checkmark.seal.fill", "You confirm")
+                }
+                .padding(.vertical, 14)
+                .padding(.horizontal, 8)
             }
-            .padding(.vertical, 18)
-            .frame(maxWidth: .infinity)
-            .stormCard()
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous))
+            .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
 
             if CameraPicker.isAvailable {
                 Button {
@@ -214,9 +230,11 @@ struct SnapTriageScreen: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(Theme.teal.opacity(0.12),
-                                        in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .foregroundStyle(Theme.teal)
+                            .background(LinearGradient(colors: (scene == .floodedRoad
+                                                                ? HazardType.streetFlooding : HazardType.downedTree).gradient,
+                                                       startPoint: .topLeading, endPoint: .bottomTrailing),
+                                        in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .foregroundStyle(.white)
                         }
                         .buttonStyle(.plain)
                     }
@@ -228,6 +246,20 @@ struct SnapTriageScreen: View {
             }
             .stormCard()
         }
+    }
+
+    private func step(_ symbol: String, _ label: String) -> some View {
+        VStack(spacing: 5) {
+            Image(systemName: symbol)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Theme.teal)
+            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var stepArrow: some View {
+        Image(systemName: "chevron.right").font(.caption2.weight(.bold)).foregroundStyle(.tertiary)
     }
 
     private func photoPreview(_ image: UIImage) -> some View {

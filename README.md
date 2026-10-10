@@ -188,8 +188,11 @@ Two limitations worth knowing:
 
 ### Accounts and removing hazards
 
-Sign in from **DPW → Sign in or create an account**. Accounts live on the backend,
-so this needs it running.
+**Everyone signs in.** The app opens on a welcome screen with three ways in —
+create an account, sign in, or sign in as a township — and nothing else is reachable
+until one succeeds. Accounts live on the backend, so it must be running; the gear on
+the welcome screen sets its address. Once signed in, the session is kept in the
+Keychain and the app opens straight to the map, including with no signal.
 
 A hazard comes off the map — for everyone — in three ways:
 
@@ -205,8 +208,9 @@ deleted from the live table and disappears from the app, the Open311 endpoint an
 the GeoJSON feed; a one-line audit record (what, where, when, why) is kept, because
 three accounts being able to erase a hazard without trace would invite abuse.
 
-Reports that were never uploaded — the seeded demo data, anything posted while
-signed out with the relay off — exist only on that device and can be removed there.
+Every report you post goes to the shared map. The seeded demo hazards are the
+exception: they exist only on the device, so they can be removed there but not
+voted on.
 
 **Resident accounts** use an email and password, confirmed with a six-digit code
 sent to that address.
@@ -273,12 +277,11 @@ and [PSE&G's downed power line page](https://nj.pseg.com/safetyandreliability/el
 
 ### Public works relay
 
-Turn on **DPW → Send my reports to public works** and each report you post is also
-filed with the backend over [Open311 GeoReport v2](https://wiki.open311.org/GeoReport_v2/),
+Each report you post is filed with the backend over [Open311 GeoReport v2](https://wiki.open311.org/GeoReport_v2/),
 the civic standard many 311 systems already speak. From there it joins the open GIS
 feed and is forwarded to the town's public works desk — if that town has opted in.
-It is off by default, the photo is never sent, and a report that could not be
-forwarded can be re-sent from its detail screen.
+The photo is never sent, and a report that could not be forwarded — posted with
+no signal, say — can be re-sent from its detail screen.
 
 ### Location
 

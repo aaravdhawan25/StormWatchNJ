@@ -98,9 +98,7 @@ enum ReportFollowUp {
             current.postalCode = resolved.postalCode
             store.update(current)
         }
-        // A signed-in resident's reports always go to the shared database: that is
-        // what an account is for. Signed out, it stays the resident's choice.
-        guard settings.forwardToPublicWorks || account.isSignedIn, current.relayTicketID == nil else { return }
+        guard current.relayTicketID == nil else { return }
         await forward(current, store: store, settings: settings, account: account)
     }
 

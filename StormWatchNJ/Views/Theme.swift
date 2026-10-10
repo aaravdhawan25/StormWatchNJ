@@ -30,8 +30,9 @@ struct CardBackground: ViewModifier {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
-                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                    .stroke(Color.primary.opacity(0.05), lineWidth: 1)
             )
+            .shadow(color: .black.opacity(0.06), radius: 10, y: 4)
     }
 }
 
@@ -58,20 +59,38 @@ struct StormHeader<Trailing: View>: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.title2.weight(.bold))
+                    .font(.system(.title, design: .rounded).weight(.bold))
                     .foregroundStyle(.white)
                 Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.75))
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.78))
             }
             Spacer(minLength: 0)
             trailing
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 8)
-        .padding(.bottom, 16)
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 34)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.headerGradient)
+        .background(alignment: .bottom) {
+            // Storm sky that ends in water: the lowest wave is the page colour,
+            // so the header's edge is a wave rather than a hard line.
+            ZStack(alignment: .bottom) {
+                Theme.headerGradient
+                RadialGradient(colors: [Theme.brightTeal.opacity(0.35), .clear],
+                               center: .topTrailing, startRadius: 0, endRadius: 260)
+                WaveShape(phase: 0.6, amplitude: 9, cycles: 1.2)
+                    .fill(.white.opacity(0.08))
+                    .frame(height: 40)
+                WaveShape(phase: 2.6, amplitude: 7, cycles: 1.6)
+                    .fill(Theme.brightTeal.opacity(0.30))
+                    .frame(height: 27)
+                WaveShape(phase: 4.3, amplitude: 6, cycles: 1.3)
+                    .fill(Color(.systemGroupedBackground))
+                    .frame(height: 15)
+            }
+            .ignoresSafeArea(edges: .top)
+        }
     }
 }
 

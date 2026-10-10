@@ -85,12 +85,7 @@ struct AdminScreen: View {
                         HazardDetailView(report: report)
                     } label: {
                         HStack(spacing: 10) {
-                            ZStack {
-                                Circle().fill(report.severity.tint.opacity(0.18)).frame(width: 34, height: 34)
-                                Image(systemName: report.reportType.symbolName)
-                                    .font(.footnote)
-                                    .foregroundStyle(report.severity.tint)
-                            }
+                            HazardGlyph(type: report.reportType, size: 36)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(report.reportType.label).font(.subheadline.weight(.medium))
                                 Text("\(report.municipality) · \(report.createdAt.shortRelative)")
@@ -162,7 +157,7 @@ struct AdminScreen: View {
                         .font(.title2)
                         .foregroundStyle(Theme.teal)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(account.account?.email ?? "Sign in or create an account")
+                        Text(account.account?.email ?? "Account")
                             .font(.subheadline.weight(.semibold))
                         Text(accountSubtitle).font(.caption).foregroundStyle(.secondary)
                     }
@@ -173,7 +168,7 @@ struct AdminScreen: View {
     }
 
     private var accountSubtitle: String {
-        guard let current = account.account else { return "Residents and township staff" }
+        guard let current = account.account else { return "" }
         return current.isTownship ? "\(current.township ?? "Township") · verified staff" : "Resident"
     }
 
@@ -184,8 +179,6 @@ struct AdminScreen: View {
 
     private var publicWorksSection: some View {
         Section {
-            Toggle("Send my reports to public works", isOn: $settings.forwardToPublicWorks)
-
             SecureField("Relay API key (if the server requires one)", text: $settings.relayAPIKey)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -199,7 +192,7 @@ struct AdminScreen: View {
         } header: {
             Text("Public works relay")
         } footer: {
-            Text("Signed in, your reports always go to the shared map; signed out, this switch decides. Reports are filed with the StormWatch backend over the Open311 civic standard, and towns that have opted in receive them at their public works desk. The feed URL can be added to ArcGIS Online or QGIS as a live layer. Photos are never sent.")
+            Text("Every report you post is filed with the StormWatch backend over the Open311 civic standard, and towns that have opted in receive it at their public works desk. The feed URL can be added to ArcGIS Online or QGIS as a live layer. Photos are never sent.")
         }
     }
 

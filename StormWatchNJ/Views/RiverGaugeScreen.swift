@@ -77,47 +77,51 @@ struct RiverGaugeScreen: View {
     }
 
     private func stationCard(_ station: USGSStation) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(station.stationName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                    Text("\(station.county) County")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-                Text(station.alert.label)
-                    .font(.system(size: 9, weight: .bold))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(station.alert.tint.opacity(0.18), in: Capsule())
-                    .foregroundStyle(station.alert.tint)
-            }
+        HStack(alignment: .center, spacing: 14) {
+            LiquidGauge(level: station.floodProgress, tint: station.alert.tint)
 
-            FloodStageBar(station: station)
-
-            HStack(spacing: 4) {
-                if let height = station.currentGaugeHeightFt {
-                    Text(String(format: "%.2f ft", height))
-                        .font(.caption.weight(.bold))
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(station.stationName)
+                            .font(.system(.subheadline, design: .rounded).weight(.bold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                        Text("\(station.county) County")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    Text(station.alert.label)
+                        .font(.system(size: 9, weight: .bold))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(station.alert.tint.opacity(0.18), in: Capsule())
                         .foregroundStyle(station.alert.tint)
-                } else {
-                    Text("No reading").font(.caption).foregroundStyle(.secondary)
                 }
-                Text(String(format: "· flood stage %.1f ft", station.floodStageFt))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-                if let margin = station.feetBelowFloodStage, margin > 0 {
-                    Text(String(format: "%.1f ft to go", margin))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+
+                FloodStageBar(station: station)
+
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    if let height = station.currentGaugeHeightFt {
+                        Text(String(format: "%.2f", height))
+                            .font(.system(.title3, design: .rounded).weight(.bold))
+                            .foregroundStyle(station.alert.tint)
+                        Text("ft").font(.caption.weight(.semibold)).foregroundStyle(station.alert.tint)
+                    } else {
+                        Text("No reading").font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    if let margin = station.feetBelowFloodStage, margin > 0 {
+                        Text(String(format: "%.1f ft below flood stage", margin))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } else if station.currentGaugeHeightFt != nil {
+                        Text("at or above flood stage").font(.caption2.weight(.semibold)).foregroundStyle(.red)
+                    }
+                    Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
                 }
-                Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
             }
         }
         .stormCard()

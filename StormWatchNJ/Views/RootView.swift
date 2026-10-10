@@ -45,7 +45,6 @@ struct RootView: View {
         .task {
             location.requestPermission()
             location.startUpdates()
-            await account.restore()
             await HazardSync.pull(into: store, account: account)
             await usgs.refresh()
         }
