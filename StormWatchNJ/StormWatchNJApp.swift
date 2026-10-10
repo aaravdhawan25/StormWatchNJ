@@ -5,14 +5,8 @@ struct StormWatchNJApp: App {
     @StateObject private var store = HazardStore()
     @StateObject private var usgs = USGSService()
     @StateObject private var location = LocationManager()
-    @StateObject private var settings: AppSettings
-    @StateObject private var account: AccountStore
-
-    init() {
-        let settings = AppSettings()
-        _settings = StateObject(wrappedValue: settings)
-        _account = StateObject(wrappedValue: AccountStore(settings: settings))
-    }
+    @StateObject private var settings = AppSettings()
+    @StateObject private var account = AccountStore()
 
     var body: some Scene {
         WindowGroup {

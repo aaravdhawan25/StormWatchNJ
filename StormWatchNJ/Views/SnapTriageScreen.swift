@@ -463,7 +463,7 @@ struct SnapTriageScreen: View {
         errorMessage = nil
         defer { isAnalyzing = false }
 
-        let engine = settings.triageEngine
+        let engine = settings.triageEngine(token: await account.validToken())
         let context = TriageContext(municipality: municipality)
         do {
             apply(try await engine.analyze(image: image, imageData: data, context: context))

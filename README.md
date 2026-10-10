@@ -14,8 +14,9 @@ open StormWatchNJ.xcodeproj
 ```
 
 Pick any iPhone simulator and press **⌘R**. Nothing else to install — no package
-manager, no API key, no backend. The app ships with seeded demo reports and pulls
-live river data on launch.
+manager and no server to start; the backend is hosted on Supabase. You'll create an
+account on the welcome screen, so the device needs an internet connection the first
+time. The app ships with seeded demo reports and pulls live river data on launch.
 
 Requirements: **Xcode 15 or newer**, iOS 17 deployment target.
 
@@ -59,8 +60,9 @@ field stays editable and nothing is published until you tap **Post report**.
 > detects this, falls back to colour analysis alone, caps confidence lower and says
 > so in the results. On a real device both signals are used.
 
-Flip **Use backend for AI triage** in the DPW tab to route photos to the FastAPI +
-Gemini endpoint in `backend/` for a real multimodal model. If that call fails, the
+Flip **Use Gemini for AI triage** in the DPW tab to route photos to Google's Gemini
+through the `analyze-image` server function for a real multimodal model. It needs
+the `GEMINI_API_KEY` secret set in Supabase. If that call fails, the
 app falls back to on-device analysis and tells you why.
 
 ### River telemetry
@@ -85,51 +87,43 @@ All seeded and simulated reports are fictional sample data, not records of real 
 
 ## Backend
 
-The app is fully functional without it. Run it for Gemini triage and the municipal
-hand-offs:
+The backend runs on [Supabase](https://supabase.com) — there is no server to start.
+Everything that defines it is in `supabase/`:
 
-```bash
-cd backend
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
+| Piece | Where | What it does |
+| --- | --- | --- |
+| Tables | `migrations/0001_schema.sql` | Hazards (PostGIS), votes, profiles, township domains, removal audit, dispatch towns |
+| Rules | `migrations/0002_rules.sql` | Reporting, the three-vote rule, removal, crew status, township roles |
+| Open311 | `functions/georeport` | GeoReport v2: services, service definitions, GET and POST requests |
+| GIS feed | `functions/hazard-feed` | GeoJSON layer — add by URL in ArcGIS Online or QGIS |
+| Gemini triage | `functions/analyze-image` | Photo analysis; needs the `GEMINI_API_KEY` secret |
 
-Set the backend URL in the DPW tab to `http://127.0.0.1:8000` (simulator) or
-`http://<your-mac-ip>:8000` (physical device). Reports are stored in SQLite so there
-is nothing else to install; `schema.sql` is the PostgreSQL + PostGIS production target.
+**How access is controlled.** Every table has row level security on, with no
+policies for app users except reading the town list and your own profile. The app
+never reads or writes a table directly; it calls database functions that check who
+is asking. So who reported a hazard never reaches another user, and nobody can vote
+twice, remove someone else's report, or make themselves a township by calling the
+API by hand. The app ships only the publishable key, which grants nothing by itself.
 
-| Endpoint | What it is |
-| --- | --- |
-| `POST /georeport/v2/requests.json` | Open311: file a report (form-encoded, as the spec requires) |
-| `GET /georeport/v2/requests.json` | Open311: list reports; filter by `status`, `service_code`, dates |
-| `GET /georeport/v2/services.json` | Open311: the hazard types, with attribute definitions per service |
-| `GET /api/v1/hazards/feed.geojson` | Live GIS layer — add by URL in ArcGIS Online or QGIS |
-| `POST /api/v1/integrations/dispatch-alert` | Re-send a stored report to its town |
-| `POST /api/v1/auth/signup`, `/verify`, `/login`, `/google` | Accounts; `GET /api/v1/auth/township-domains` lists recognised towns |
-| `GET /api/v1/hazards` | The shared hazard list the app syncs from |
-| `POST /api/v1/hazards/{id}/not-there` | Vote that a hazard is gone; the third distinct vote removes it |
-| `DELETE /api/v1/hazards/{id}` | Remove — reporter or township only |
-| `PATCH /api/v1/hazards/{id}/status` | Crew status — township only |
-| `POST /api/v1/analyze-image` | Gemini triage (needs `GOOGLE_API_KEY`) |
+**Open311.** Reads are public. A POST must come from a signed-in user or carry an
+`api_key` listed in the `OPEN311_API_KEYS` secret (for a town's own system). A
+second report of the same kind of hazard within 75 m and 6 hours becomes a
+confirmation instead of a second ticket. Reports outside New Jersey are refused.
+Reporter name, email and phone are accepted, as the spec allows, and discarded.
 
-**Forwarding to a town.** Copy `dispatch_config.example.json` to
-`dispatch_config.json` and add a town by ZIP code with a `webhook_url`, an `email`,
-or both. There are no built-in destinations: a town opts in by giving you an
-address. The desk receives the hazard, severity, street address, GPS, a Google Maps
-pin and a plain note that it is an unverified resident report. Email goes through
-[Resend](https://resend.com) and is skipped unless `RESEND_API_KEY` and
-`DISPATCH_FROM_EMAIL` are set.
+**Forwarding to a town.** Add a row to `dispatch_towns` with the ZIP code and a
+`webhook_url`, an `email`, or both. There are no built-in destinations: a town opts
+in by giving you an address. The desk receives the hazard, severity, street address,
+GPS, a Google Maps pin and a plain note that it is an unverified resident report.
+Email needs the `RESEND_API_KEY` and `DISPATCH_FROM_EMAIL` secrets.
 
-**Keeping it from becoming a spam relay.** A second report of the same hazard within
-75 m and 6 hours becomes a confirmation on the first ticket rather than a new one.
-`min_severity` and `max_per_hour` cap what a desk receives. Reports outside New
-Jersey are rejected. Set `STORMWATCH_API_KEYS` before exposing the API — unset, it
-runs in open development mode. Reporter name, email and phone are accepted by
-Open311 but discarded here, so the public feed cannot leak who filed a report.
+**Checks.** `supabase/tests/check_rules.sql` exercises the rules inside a
+transaction that rolls back (33 checks). `supabase/tests/check_live.py` exercises the
+deployed API over the network (46 checks).
 
-Not implemented: XML responses, placing a report from `address_string` alone (there
-is no geocoder server-side), and an ESRI Shapefile export — ArcGIS and QGIS both read
-the GeoJSON feed directly.
+Not implemented: XML responses, placing a report from `address_string` alone (no
+geocoder server-side), and an ESRI Shapefile export — ArcGIS and QGIS read the
+GeoJSON feed directly.
 
 ## Project layout
 
@@ -144,7 +138,7 @@ StormWatch/
 │   └── Views/           Map, list, snap & triage, rivers, DPW console
 ├── Tools/
 │   └── generate_xcodeproj.py
-└── backend/
+└── supabase/          migrations, server functions, checks
 ```
 
 ### Regenerating the project file
@@ -190,9 +184,9 @@ Two limitations worth knowing:
 
 **Everyone signs in.** The app opens on a welcome screen with three ways in —
 create an account, sign in, or sign in as a township — and nothing else is reachable
-until one succeeds. Accounts live on the backend, so it must be running; the gear on
-the welcome screen sets its address. Once signed in, the session is kept in the
-Keychain and the app opens straight to the map, including with no signal.
+until one succeeds. Accounts are handled by Supabase Auth. Once signed in, the
+session is kept in the Keychain and the app opens straight to the map, including
+with no signal.
 
 A hazard comes off the map — for everyone — in three ways:
 
@@ -212,38 +206,40 @@ Every report you post goes to the shared map. The seeded demo hazards are the
 exception: they exist only on the device, so they can be removed there but not
 voted on.
 
-**Resident accounts** use an email and password, confirmed with a six-digit code
-sent to that address.
+**Resident accounts** use an email and password, confirmed by email.
 
-**Township accounts** are for municipal staff. The email must be on one of the 19
-recognised municipal domains in `backend/townships.py`, matched exactly — so
-`a@princetonnj.gov.example.com` and `a@notprincetonnj.gov` are refused. The domain
-check alone proves nothing, since anyone can type someone else's address; the
-account only works once its owner enters the code emailed to it. The domain list
-was supplied for this project and has not been checked town by town — review it
+**Township accounts** are for municipal staff. An account is a township account
+only when all three hold: it asked to be one, its email is on one of the 19
+recognised municipal domains (matched exactly — `a@princetonnj.gov.example.com` and
+`a@notprincetonnj.gov` are refused), and that email has been confirmed. The first
+two are things anyone can type; confirmation is what proves the person receives mail
+there. This is decided by a database trigger, not by the app, and is recomputed
+whenever the account changes. The domain list lives in the `township_domains` table;
+it was supplied for this project and has not been checked town by town — review it
 before real use.
 
-**Verification email** is sent through [Resend](https://resend.com) when
-`RESEND_API_KEY` and `DISPATCH_FROM_EMAIL` are set. Without them the code is written
-to the server log instead, which is fine on your own laptop and useless anywhere
-else — `/health` reports `email_configured` so you can tell.
+**Confirmation email.** Supabase sends it. Two things to set in the dashboard:
 
-**Google sign-in** is built but switched off until you give it an OAuth client,
-which has to come from your own Google account:
+- *Authentication → Emails → Confirm signup*: add `{{ .Token }}` to the template so
+  the email shows a code to type into the app. Without that, the email only has a
+  link — which also works: tap it, come back, and choose "I tapped the link".
+- Supabase's built-in mailer is limited to a few emails an hour and is meant for
+  testing. For real use, add your own SMTP provider under *Authentication → SMTP*.
+
+Keep **Confirm email** switched on. Township security depends on it.
+
+**Google sign-in** is built but switched off until it has an OAuth client, which has
+to come from your own Google account:
 
 1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
    create an OAuth client ID of type **iOS** with bundle ID
    `com.stormwatchnj.StormWatchNJ`.
-2. Put the client ID in `StormWatchNJ/Info.plist` under `GoogleClientID`.
-3. Set the same ID as `GOOGLE_CLIENT_IDS` for the backend.
+2. In Supabase, *Authentication → Sign In / Providers → Google*: enable it and add
+   that client ID.
+3. Put the same client ID in `StormWatchNJ/Info.plist` under `GoogleClientID`.
 
-The "Continue with Google" button appears once step 2 is done. This path has not
+The "Continue with Google" button appears once step 3 is done. This path has not
 been run end to end, because it cannot be without that client ID.
-
-Passwords are stored as salted scrypt hashes and session tokens only as hashes; the
-app keeps its token in the Keychain. Five wrong passwords lock an account for 15
-minutes, and a code dies after five wrong guesses. Run the backend behind HTTPS
-anywhere but your own machine.
 
 ### Utility hand-off for downed wires
 

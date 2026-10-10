@@ -244,19 +244,22 @@ struct OnDeviceTriageEngine: TriageEngine {
 
 // MARK: - Remote engine
 
-/// Calls the FastAPI `/api/v1/analyze-image` endpoint from the project blueprint,
+/// Calls the `analyze-image` server function,
 /// which runs the photo through Gemini with a strict JSON response schema.
 struct RemoteTriageEngine: TriageEngine {
-    let name = "StormWatch backend (Gemini)"
-    let baseURL: URL
+    let name = "Gemini (StormWatch server)"
+    /// The signed-in user's access token; the endpoint refuses anyone else so the
+    /// Gemini key cannot be spent by strangers.
+    let token: String
 
     func analyze(image: UIImage, imageData: Data, context: TriageContext) async throws -> HazardAnalysis {
-        let endpoint = baseURL.appendingPathComponent("api/v1/analyze-image")
         let boundary = "stormwatch.\(UUID().uuidString)"
 
-        var request = URLRequest(url: endpoint)
+        var request = URLRequest(url: SupabaseConfig.function("analyze-image"))
         request.httpMethod = "POST"
         request.timeoutInterval = 30
+        request.setValue(SupabaseConfig.publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
         var body = Data()

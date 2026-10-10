@@ -1,6 +1,6 @@
 import Foundation
 
-/// Files a report with the StormWatch backend's Open311 GeoReport v2 endpoint,
+/// Files a report with the backend's Open311 GeoReport v2 endpoint,
 /// which stores it, publishes it in the GeoJSON feed and forwards it to the
 /// town's public works desk if that town has opted in.
 ///
@@ -14,7 +14,7 @@ enum MunicipalRelay {
 
         var errorDescription: String? {
             switch self {
-            case .notConfigured: return "No backend address is set."
+            case .notConfigured: return "Sign in to send reports."
             case .rejected(let code, let detail): return "The relay refused the report (\(code)). \(detail)"
             case .unreadable: return "The relay's reply could not be read."
             }
@@ -22,9 +22,8 @@ enum MunicipalRelay {
     }
 
     /// Returns the `service_request_id` the backend assigned.
-    static func send(_ report: HazardReport, baseURL: URL?, apiKey: String,
-                     sessionToken: String? = nil) async throws -> String {
-        guard let baseURL, baseURL.scheme != nil else { throw RelayError.notConfigured }
+    static func send(_ report: HazardReport, sessionToken: String?) async throws -> String {
+        guard let sessionToken else { throw RelayError.notConfigured }
 
         var fields: [(String, String)] = [
             ("service_code", report.reportType.rawValue),
@@ -36,18 +35,18 @@ enum MunicipalRelay {
             ("attribute[utility_lines_involved]", report.utilityLinesInvolved ? "true" : "false"),
             ("attribute[municipality]", report.municipality)
         ]
-        if !apiKey.isEmpty { fields.append(("api_key", apiKey)) }
         if let address = report.address { fields.append(("address_string", address)) }
         if let postalCode = report.postalCode { fields.append(("attribute[zipcode]", postalCode)) }
 
-        var request = URLRequest(url: baseURL.appendingPathComponent("georeport/v2/requests.json"))
+        var request = URLRequest(url: SupabaseConfig.function("georeport/requests.json"))
         request.httpMethod = "POST"
         request.timeoutInterval = 15
         // Open311 specifies form encoding for POST, not JSON.
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        // Signed in, the server records who filed the report — which is what later
-        // lets that person, and only that person, remove it.
-        if let sessionToken { request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization") }
+        // The session token is how the server knows who filed the report — which is
+        // what later lets that person, and only that person, remove it.
+        request.setValue(SupabaseConfig.publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization")
         request.httpBody = fields
             .map { "\(formEncode($0.0))=\(formEncode($0.1))" }
             .joined(separator: "&")
@@ -108,10 +107,7 @@ enum ReportFollowUp {
                         settings: AppSettings, account: AccountStore) async -> String? {
         do {
             var sent = report
-            sent.relayTicketID = try await MunicipalRelay.send(report,
-                                                               baseURL: settings.backendURL,
-                                                               apiKey: settings.relayAPIKey,
-                                                               sessionToken: account.token)
+            sent.relayTicketID = try await MunicipalRelay.send(report, sessionToken: await account.validToken())
             store.update(sent)
             await HazardSync.pull(into: store, account: account)
             return nil

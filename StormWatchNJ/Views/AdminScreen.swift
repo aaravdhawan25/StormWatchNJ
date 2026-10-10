@@ -172,27 +172,21 @@ struct AdminScreen: View {
         return current.isTownship ? "\(current.township ?? "Township") · verified staff" : "Resident"
     }
 
-    private var feedURLText: String {
-        (settings.backendURL?.appendingPathComponent("api/v1/hazards/feed.geojson").absoluteString)
-            ?? "Set a backend address below"
-    }
-
     private var publicWorksSection: some View {
         Section {
-            SecureField("Relay API key (if the server requires one)", text: $settings.relayAPIKey)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-
             VStack(alignment: .leading, spacing: 4) {
                 Text("Live GIS feed").font(.caption).foregroundStyle(.secondary)
-                Text(feedURLText)
+                Text(SupabaseConfig.feedURL.absoluteString)
                     .font(.system(.caption, design: .monospaced))
                     .textSelection(.enabled)
+            }
+            ShareLink(item: SupabaseConfig.feedURL) {
+                Label("Share feed link", systemImage: "square.and.arrow.up")
             }
         } header: {
             Text("Public works relay")
         } footer: {
-            Text("Every report you post is filed with the StormWatch backend over the Open311 civic standard, and towns that have opted in receive it at their public works desk. The feed URL can be added to ArcGIS Online or QGIS as a live layer. Photos are never sent.")
+            Text("Every report you post is filed over the Open311 civic standard, and towns that have opted in receive it at their public works desk. The feed link can be added to ArcGIS Online or QGIS as a live layer. Photos are never sent.")
         }
     }
 
@@ -208,12 +202,7 @@ struct AdminScreen: View {
 
     private var backendSection: some View {
         Section {
-            Toggle("Use backend for AI triage", isOn: $settings.useRemoteTriage)
-
-            TextField("http://127.0.0.1:8000", text: $settings.backendURLString)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .disabled(!settings.useRemoteTriage)
+            Toggle("Use Gemini for AI triage", isOn: $settings.useRemoteTriage)
 
             VStack(alignment: .leading) {
                 HStack {
@@ -226,7 +215,7 @@ struct AdminScreen: View {
         } header: {
             Text("Configuration")
         } footer: {
-            Text("Off, photos are triaged on-device with Apple's Vision framework — no network, no key. On, the app posts to the FastAPI /api/v1/analyze-image endpoint in backend/. If that call fails it falls back to on-device triage.")
+            Text("Off, photos are analyzed on this device — no network needed. On, the photo is sent to Google's Gemini through the StormWatch server for a more capable read; if that fails the app falls back to on-device analysis.")
         }
     }
 

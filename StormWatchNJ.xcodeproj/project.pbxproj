@@ -26,6 +26,7 @@
 		7C35DCB5B9FBDEC4EFE78B81 /* NJMunicipalities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9372EAF3EC2DE12472212D92 /* NJMunicipalities.swift */; };
 		2E580CB7C4495B2FF6044F2B /* NJStationCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF1F02597918FBD8038BCDA /* NJStationCatalog.swift */; };
 		414841AC447F5411D94726A4 /* NextdoorShare.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7E57995FFDE368BA804E02 /* NextdoorShare.swift */; };
+		3DECA33602DF99D016EB0A68 /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD39F34C54227D7EE77B5A1 /* SupabaseConfig.swift */; };
 		EA37011B87FC462EFF2F9D2E /* TriageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 085303F6A1B386B4F93C951A /* TriageService.swift */; };
 		91E41638AB46AA6635950DAC /* USGSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F09F6D118E8F9910AF6868 /* USGSService.swift */; };
 		A6F6C2ADB8F3D9A54B157EBB /* UtilityHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBF319979F22B24771FE0D59 /* UtilityHandoff.swift */; };
@@ -67,6 +68,7 @@
 		9372EAF3EC2DE12472212D92 /* NJMunicipalities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NJMunicipalities.swift; sourceTree = "<group>"; };
 		4DF1F02597918FBD8038BCDA /* NJStationCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NJStationCatalog.swift; sourceTree = "<group>"; };
 		5B7E57995FFDE368BA804E02 /* NextdoorShare.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextdoorShare.swift; sourceTree = "<group>"; };
+		9BD39F34C54227D7EE77B5A1 /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
 		085303F6A1B386B4F93C951A /* TriageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriageService.swift; sourceTree = "<group>"; };
 		25F09F6D118E8F9910AF6868 /* USGSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USGSService.swift; sourceTree = "<group>"; };
 		EBF319979F22B24771FE0D59 /* UtilityHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UtilityHandoff.swift; sourceTree = "<group>"; };
@@ -150,6 +152,7 @@
 				9372EAF3EC2DE12472212D92 /* NJMunicipalities.swift */,
 				4DF1F02597918FBD8038BCDA /* NJStationCatalog.swift */,
 				5B7E57995FFDE368BA804E02 /* NextdoorShare.swift */,
+				9BD39F34C54227D7EE77B5A1 /* SupabaseConfig.swift */,
 				085303F6A1B386B4F93C951A /* TriageService.swift */,
 				25F09F6D118E8F9910AF6868 /* USGSService.swift */,
 				EBF319979F22B24771FE0D59 /* UtilityHandoff.swift */,
@@ -275,6 +278,7 @@
 				7C35DCB5B9FBDEC4EFE78B81 /* NJMunicipalities.swift in Sources */,
 				2E580CB7C4495B2FF6044F2B /* NJStationCatalog.swift in Sources */,
 				414841AC447F5411D94726A4 /* NextdoorShare.swift in Sources */,
+				3DECA33602DF99D016EB0A68 /* SupabaseConfig.swift in Sources */,
 				EA37011B87FC462EFF2F9D2E /* TriageService.swift in Sources */,
 				91E41638AB46AA6635950DAC /* USGSService.swift in Sources */,
 				A6F6C2ADB8F3D9A54B157EBB /* UtilityHandoff.swift in Sources */,

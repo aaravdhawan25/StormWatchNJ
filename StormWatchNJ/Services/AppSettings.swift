@@ -7,14 +7,10 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(searchRadiusMiles, forKey: Keys.radius) }
     }
 
-    /// When on, the Snap & Triage screen calls the FastAPI backend instead of the
-    /// on-device Vision engine.
+    /// When on, Snap & Triage sends the photo to Gemini through the server
+    /// instead of analyzing it on the device.
     @Published var useRemoteTriage: Bool {
         didSet { defaults.set(useRemoteTriage, forKey: Keys.useRemote) }
-    }
-
-    @Published var backendURLString: String {
-        didSet { defaults.set(backendURLString, forKey: Keys.backendURL) }
     }
 
     /// Whether to offer a Nextdoor cross-post after a report is submitted.
@@ -24,10 +20,6 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(offerNextdoorShare, forKey: Keys.nextdoor) }
     }
 
-    @Published var relayAPIKey: String {
-        didSet { defaults.set(relayAPIKey, forKey: Keys.relayKey) }
-    }
-
     @Published var simulateNoreaster: Bool = false
 
     private let defaults: UserDefaults
@@ -35,9 +27,7 @@ final class AppSettings: ObservableObject {
     private enum Keys {
         static let radius = "stormwatch.searchRadiusMiles"
         static let useRemote = "stormwatch.useRemoteTriage"
-        static let backendURL = "stormwatch.backendURL"
         static let nextdoor = "stormwatch.offerNextdoorShare"
-        static let relayKey = "stormwatch.relayAPIKey"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -45,21 +35,13 @@ final class AppSettings: ObservableObject {
         let storedRadius = defaults.double(forKey: Keys.radius)
         self.searchRadiusMiles = storedRadius > 0 ? storedRadius : 5.0
         self.useRemoteTriage = defaults.bool(forKey: Keys.useRemote)
-        self.backendURLString = defaults.string(forKey: Keys.backendURL) ?? "http://127.0.0.1:8000"
         self.offerNextdoorShare = defaults.object(forKey: Keys.nextdoor) as? Bool ?? true
-        self.relayAPIKey = defaults.string(forKey: Keys.relayKey) ?? ""
     }
 
-    var backendURL: URL? {
-        URL(string: backendURLString.trimmingCharacters(in: .whitespacesAndNewlines))
-    }
-
-    /// The engine the Snap & Triage screen should use right now. Falls back to the
-    /// on-device engine whenever the remote URL is unusable, so the flow never dead-ends.
-    var triageEngine: any TriageEngine {
-        guard useRemoteTriage, let url = backendURL, url.scheme != nil else {
-            return OnDeviceTriageEngine()
-        }
-        return RemoteTriageEngine(baseURL: url)
+    /// The engine Snap & Triage should use right now. Falls back to on-device
+    /// analysis when Gemini is off or nobody is signed in, so the flow never dead-ends.
+    func triageEngine(token: String?) -> any TriageEngine {
+        guard useRemoteTriage, let token else { return OnDeviceTriageEngine() }
+        return RemoteTriageEngine(token: token)
     }
 }

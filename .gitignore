@@ -25,6 +25,3 @@ venv/
 # macOS
 .DS_Store
 
-# Backend runtime data
-backend/stormwatch.db
-backend/dispatch_config.json

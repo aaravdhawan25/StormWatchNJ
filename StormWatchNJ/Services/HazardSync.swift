@@ -33,10 +33,17 @@ struct ServerHazard: Decodable {
         report.iVotedNotThere = i_voted_not_there
     }
 
+    /// Postgres timestamps carry fractional seconds, which the plain ISO 8601
+    /// parser rejects, so try that form first.
+    private static func date(_ text: String) -> Date {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fractional.date(from: text) ?? ISO8601DateFormatter().date(from: text) ?? Date()
+    }
+
     /// A report first seen from the server, i.e. posted from someone else's phone.
     func makeReport() -> HazardReport? {
         guard let type = HazardType(rawValue: report_type) else { return nil }
-        let formatter = ISO8601DateFormatter()
         var report = HazardReport(id: UUID(uuidString: id) ?? UUID(),
                                   reportType: type,
                                   severity: Severity(rawValue: severity) ?? .moderate,
@@ -49,8 +56,8 @@ struct ServerHazard: Decodable {
                                   municipality: municipality ?? "New Jersey",
                                   status: ReportStatus(rawValue: status) ?? .active,
                                   upvotes: upvotes,
-                                  createdAt: formatter.date(from: created_at) ?? Date(),
-                                  updatedAt: formatter.date(from: updated_at) ?? Date())
+                                  createdAt: Self.date(created_at),
+                                  updatedAt: Self.date(updated_at))
         report.relayTicketID = id
         apply(to: &report)
         return report
@@ -60,11 +67,11 @@ struct ServerHazard: Decodable {
 /// Pulls the shared hazard list and applies removal decisions made on the server.
 @MainActor
 enum HazardSync {
-    /// Quietly does nothing when the backend is unset or unreachable — the app is
-    /// meant to keep working from its local store.
+    /// Quietly does nothing when signed out or offline — the app is meant to
+    /// keep working from its local store.
     static func pull(into store: HazardStore, account: AccountStore) async {
-        guard let api = account.api,
-              let hazards: [ServerHazard] = try? await api.send("GET", "api/v1/hazards") else { return }
+        guard let api = await account.authorizedAPI(),
+              let hazards: [ServerHazard] = try? await api.send("POST", "rest/v1/rpc/list_hazards", body: [:]) else { return }
         store.merge(serverHazards: hazards)
     }
 
@@ -74,19 +81,21 @@ enum HazardSync {
         let not_there_threshold: Int
     }
 
+    private static let signedOut = APIError.server(status: 401, detail: "Sign in to do that.", code: nil)
+
     /// Records "it's not there". Returns true if that vote removed the hazard.
     static func voteNotThere(_ report: HazardReport, store: HazardStore, account: AccountStore) async throws -> Bool {
-        guard let api = account.api, let ticket = report.relayTicketID else { throw APIError.notConfigured }
-        let result: VoteResult = try await api.send("POST", "api/v1/hazards/\(ticket)/not-there")
+        guard let api = await account.authorizedAPI(), let ticket = report.relayTicketID else { throw signedOut }
+        let result: VoteResult = try await api.send("POST", "rest/v1/rpc/vote_not_there", body: ["p_hazard": ticket])
         await pull(into: store, account: account)
         return result.removed
     }
 
     static func remove(_ report: HazardReport, store: HazardStore, account: AccountStore) async throws {
-        guard let api = account.api, let ticket = report.relayTicketID else { throw APIError.notConfigured }
+        guard let api = await account.authorizedAPI(), let ticket = report.relayTicketID else { throw signedOut }
         do {
-            let _: BackendAPI.Empty = try await api.send("DELETE", "api/v1/hazards/\(ticket)")
-        } catch let error as APIError where error.status == 404 {
+            let _: BackendAPI.Empty = try await api.send("POST", "rest/v1/rpc/remove_hazard", body: ["p_hazard": ticket])
+        } catch let error as APIError where error.code == "P0002" {
             // Already gone on the server; fall through and drop the local copy.
         }
         store.delete(report)
@@ -94,9 +103,9 @@ enum HazardSync {
 
     static func setStatus(_ status: ReportStatus, for report: HazardReport,
                           store: HazardStore, account: AccountStore) async throws {
-        guard let api = account.api, let ticket = report.relayTicketID else { throw APIError.notConfigured }
-        let _: ServerHazard = try await api.send("PATCH", "api/v1/hazards/\(ticket)/status",
-                                                 body: ["status": status.rawValue])
+        guard let api = await account.authorizedAPI(), let ticket = report.relayTicketID else { throw signedOut }
+        let _: BackendAPI.Empty = try await api.send("POST", "rest/v1/rpc/set_hazard_status",
+                                                     body: ["p_hazard": ticket, "p_status": status.rawValue])
         await pull(into: store, account: account)
     }
 }

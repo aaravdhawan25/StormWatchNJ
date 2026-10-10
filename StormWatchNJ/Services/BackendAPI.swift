@@ -1,17 +1,14 @@
 import Foundation
 
-/// A failure talking to the StormWatch backend, phrased for the person using the app.
+/// A failure talking to the backend, phrased for the person using the app.
 enum APIError: LocalizedError {
-    case notConfigured
     case unreachable
     case server(status: Int, detail: String, code: String?)
 
     var errorDescription: String? {
         switch self {
-        case .notConfigured:
-            return "No backend address is set. Add one in the DPW tab."
         case .unreachable:
-            return "Couldn't reach the StormWatch server. Check your connection and the backend address."
+            return "Couldn't reach StormWatch. Check your connection and try again."
         case .server(_, let detail, _):
             return detail
         }
@@ -28,26 +25,28 @@ enum APIError: LocalizedError {
     }
 }
 
-/// JSON client for the backend's account and hazard endpoints.
+/// JSON client for Supabase: the auth service (`auth/v1`) and the database API
+/// (`rest/v1`). Every request carries the publishable key; signed-in requests
+/// also carry the user's access token.
 struct BackendAPI {
-    let baseURL: URL
     var token: String?
 
-    init?(baseURL: URL?, token: String? = nil) {
-        guard let baseURL, baseURL.scheme != nil else { return nil }
-        self.baseURL = baseURL
-        self.token = token
-    }
-
+    /// Decodes from any JSON object, for calls whose reply does not matter.
     struct Empty: Decodable {}
 
     func send<Response: Decodable>(_ method: String,
                                    _ path: String,
-                                   body: [String: String]? = nil) async throws -> Response {
-        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+                                   query: [URLQueryItem] = [],
+                                   body: [String: Any]? = nil) async throws -> Response {
+        var components = URLComponents(url: SupabaseConfig.url.appendingPathComponent(path),
+                                       resolvingAgainstBaseURL: false)!
+        if !query.isEmpty { components.queryItems = query }
+
+        var request = URLRequest(url: components.url!)
         request.httpMethod = method
-        request.timeoutInterval = 15
-        if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        request.timeoutInterval = 20
+        request.setValue(SupabaseConfig.publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(token ?? SupabaseConfig.publishableKey)", forHTTPHeaderField: "Authorization")
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -63,16 +62,33 @@ struct BackendAPI {
 
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
-            let failure = try? JSONDecoder().decode(Failure.self, from: data)
-            throw APIError.server(status: status,
-                                  detail: failure?.detail ?? "The server returned an error (\(status)).",
-                                  code: failure?.code)
+            throw Self.failure(status: status, data: data)
         }
-        return try JSONDecoder().decode(Response.self, from: data)
+        // Sign-out answers 204 with no body.
+        return try JSONDecoder().decode(Response.self, from: data.isEmpty ? Data("{}".utf8) : data)
     }
 
-    private struct Failure: Decodable {
-        let detail: String?
-        let code: String?
+    /// The auth service and the database API report errors in different shapes;
+    /// this reads either and replaces the common ones with plain wording.
+    private static func failure(status: Int, data: Data) -> APIError {
+        let raw = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+        let code = (raw["error_code"] ?? raw["code"]) as? String
+        let message = (raw["msg"] ?? raw["message"] ?? raw["error_description"] ?? raw["detail"]) as? String
+
+        let friendly: String?
+        switch code {
+        case "invalid_credentials": friendly = "Incorrect email or password."
+        case "email_not_confirmed": friendly = "Check your email to finish setting up your account."
+        case "user_already_exists", "email_exists": friendly = "An account with that email already exists. Sign in instead."
+        case "otp_expired": friendly = "That code is wrong or has expired. Request a new one."
+        case "over_email_send_rate_limit", "over_request_rate_limit":
+            friendly = "Too many attempts. Wait a minute and try again."
+        case "weak_password": friendly = "Choose a stronger password."
+        case "email_address_invalid", "validation_failed": friendly = "Enter a valid email address."
+        default: friendly = nil
+        }
+        return .server(status: status,
+                       detail: friendly ?? message ?? "Something went wrong (\(status)).",
+                       code: code)
     }
 }

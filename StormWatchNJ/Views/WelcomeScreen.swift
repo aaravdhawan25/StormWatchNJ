@@ -6,7 +6,6 @@ import SwiftUI
 /// tied to a person, so there is no anonymous mode to fall back to.
 struct WelcomeScreen: View {
     @State private var route: AuthRoute?
-    @State private var showServer = false
     @State private var appeared = false
 
     var body: some View {
@@ -72,18 +71,9 @@ struct WelcomeScreen: View {
                 }
                 .padding(.vertical, 12)
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showServer = true } label: {
-                        Image(systemName: "gearshape.fill").foregroundStyle(.white.opacity(0.7))
-                    }
-                    .accessibilityLabel("Server settings")
-                }
-            }
             .navigationDestination(item: $route) { route in
                 AuthScreen(kind: route.kind, isCreating: route.creating)
             }
-            .sheet(isPresented: $showServer) { ServerSettingsSheet() }
             .onAppear {
                 withAnimation(.spring(duration: 0.8, bounce: 0.3)) { appeared = true }
             }
@@ -113,35 +103,4 @@ struct WelcomeScreen: View {
 struct AuthRoute: Hashable {
     let kind: AccountKind
     let creating: Bool
-}
-
-/// Where the app finds its backend. Reachable before sign-in, because without
-/// the right address nobody could sign in to change it.
-struct ServerSettingsSheet: View {
-    @EnvironmentObject private var settings: AppSettings
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("http://127.0.0.1:8000", text: $settings.backendURLString)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                } header: {
-                    Text("StormWatch server")
-                } footer: {
-                    Text("Accounts and the shared hazard map live on this server. On the simulator, the default reaches a backend running on this Mac. On a phone, use the Mac's network address or wherever the backend is hosted.")
-                }
-            }
-            .navigationTitle("Server")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-            }
-        }
-        .tint(Theme.teal)
-        .presentationDetents([.medium])
-    }
 }

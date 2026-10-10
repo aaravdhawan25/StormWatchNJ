@@ -78,7 +78,7 @@ struct AuthScreen: View {
 
     private var subheading: String {
         if let pending = account.pendingEmail {
-            return "We sent a six-digit code to \(pending). It expires in 15 minutes."
+            return "We sent an email to \(pending). Enter the code from it, or tap the link in it and come back."
         }
         if kind == .township {
             return "For municipal staff. Use your official township email — you'll confirm it with a code sent there, so only someone who receives mail at that address can sign in."
@@ -153,7 +153,7 @@ struct AuthScreen: View {
             if isCreating {
                 try await account.signUp(email: email, password: password, kind: kind)
             } else {
-                try await account.signIn(email: email, password: password)
+                try await account.signIn(email: email, password: password, kind: kind)
             }
         }
     }
@@ -163,7 +163,7 @@ struct AuthScreen: View {
     @ViewBuilder
     private func verification(for pending: String) -> some View {
         field(icon: "number") {
-            TextField("", text: $code, prompt: Text("6-digit code").foregroundColor(.white.opacity(0.45)))
+            TextField("", text: $code, prompt: Text("Code from the email").foregroundColor(.white.opacity(0.45)))
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
                 .font(.title3.monospacedDigit().weight(.semibold))
@@ -175,11 +175,19 @@ struct AuthScreen: View {
             run { try await account.verify(code: code) }
         }
 
+        // Confirming by the emailed link works too; then the password signs in.
+        Button("I tapped the link in the email") {
+            run { try await account.signIn(email: pending, password: password, kind: kind) }
+        }
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.white.opacity(0.85))
+        .disabled(password.isEmpty || isWorking)
+
         HStack {
-            Button("Send a new code") {
+            Button("Send a new email") {
                 run {
                     try await account.resendCode()
-                    message = "If a code was due, a new one is on its way. You can ask once a minute."
+                    message = "A new email is on its way. You can ask once a minute."
                 }
             }
             Spacer()

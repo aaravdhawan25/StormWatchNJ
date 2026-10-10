@@ -4,8 +4,8 @@ import Foundation
 struct Account: Codable, Equatable {
     let id: String
     let email: String
-    let role: String
-    let township: String?
+    var role: String
+    var township: String?
 
     var isTownship: Bool { role == "township" }
 }
@@ -18,145 +18,258 @@ enum AccountKind: String, CaseIterable, Identifiable {
     var label: String { self == .resident ? "Resident" : "Township" }
 }
 
-/// Sign-in state, backed by the StormWatch backend.
-///
-/// An account is what makes "three people say it's gone" mean three people, and
-/// what lets a reporter — and only that reporter — take down their own report.
-@MainActor
-final class AccountStore: ObservableObject {
-    @Published private(set) var account: Account?
-    /// Set while an emailed verification code is outstanding for this address.
-    @Published var pendingEmail: String?
-
-    private let settings: AppSettings
-    private static let tokenKey = "token"
-    private static let accountKey = "account"
-    private(set) var token: String?
-
-    init(settings: AppSettings) {
-        self.settings = settings
-        self.token = Keychain.read(Self.tokenKey)
-        // Sign-in is required, so the last known account is restored immediately:
-        // someone already signed in should not be locked out of the map because
-        // they opened the app in a basement with no signal. `restore()` then
-        // checks the session with the server and signs out if it was revoked.
-        if token != nil, let saved = Keychain.read(Self.accountKey),
-           let account = try? JSONDecoder().decode(Account.self, from: Data(saved.utf8)) {
-            self.account = account
-        }
-    }
-
-    var isSignedIn: Bool { account != nil }
-
-    /// A client carrying the current session, or nil when no backend is set.
-    var api: BackendAPI? { BackendAPI(baseURL: settings.backendURL, token: token) }
-
-    private func requireAPI() throws -> BackendAPI {
-        guard let api else { throw APIError.notConfigured }
-        return api
-    }
-
-    /// Re-validates a saved session on launch. A rejected token is discarded; a
-    /// server that cannot be reached leaves it alone to try again later.
-    func restore() async {
-        guard token != nil, let api else { return }
-        do {
-            let current: Account = try await api.send("GET", "api/v1/auth/me")
-            remember(current)
-        } catch let error as APIError where error.status == 401 {
-            clearSession()
-        } catch {
-            // Offline: keep the token.
-        }
-    }
-
-    func signUp(email: String, password: String, kind: AccountKind) async throws {
-        let _: Pending = try await requireAPI().send("POST", "api/v1/auth/signup", body: [
-            "email": email, "password": password, "account_type": kind.rawValue
-        ])
-        pendingEmail = email.trimmingCharacters(in: .whitespaces).lowercased()
-    }
-
-    func signIn(email: String, password: String) async throws {
-        do {
-            let session: Session = try await requireAPI().send("POST", "api/v1/auth/login", body: [
-                "email": email, "password": password
-            ])
-            adopt(session)
-        } catch let error as APIError where error.code == "verification_required" {
-            // Right password, unverified address: the server has sent a fresh code.
-            pendingEmail = email.trimmingCharacters(in: .whitespaces).lowercased()
-        }
-    }
-
-    func verify(code: String) async throws {
-        guard let pendingEmail else { return }
-        let session: Session = try await requireAPI().send("POST", "api/v1/auth/verify", body: [
-            "email": pendingEmail, "code": code
-        ])
-        adopt(session)
-    }
-
-    func resendCode() async throws {
-        guard let pendingEmail else { return }
-        let _: BackendAPI.Empty = try await requireAPI().send("POST", "api/v1/auth/resend",
-                                                              body: ["email": pendingEmail])
-    }
-
-    func signInWithGoogle(kind: AccountKind) async throws {
-        let idToken = try await GoogleSignIn.idToken()
-        let session: Session = try await requireAPI().send("POST", "api/v1/auth/google", body: [
-            "id_token": idToken, "account_type": kind.rawValue
-        ])
-        adopt(session)
-    }
-
-    func signOut() async {
-        if let api { let _: BackendAPI.Empty? = try? await api.send("POST", "api/v1/auth/logout") }
-        clearSession()
-    }
-
-    func townshipDomains() async -> [TownshipDomain] {
-        guard let api = BackendAPI(baseURL: settings.backendURL) else { return [] }
-        return (try? await api.send("GET", "api/v1/auth/township-domains")) ?? []
-    }
-
-    private func adopt(_ session: Session) {
-        token = session.token
-        Keychain.save(session.token, for: Self.tokenKey)
-        remember(session.user)
-        pendingEmail = nil
-    }
-
-    private func remember(_ current: Account) {
-        account = current
-        if let data = try? JSONEncoder().encode(current), let text = String(data: data, encoding: .utf8) {
-            Keychain.save(text, for: Self.accountKey)
-        }
-    }
-
-    private func clearSession() {
-        token = nil
-        Keychain.delete(Self.tokenKey)
-        Keychain.delete(Self.accountKey)
-        account = nil
-        pendingEmail = nil
-    }
-
-    private struct Session: Decodable {
-        let token: String
-        let user: Account
-    }
-
-    private struct Pending: Decodable {
-        let status: String
-    }
-}
-
 struct TownshipDomain: Decodable, Identifiable {
     let domain: String
     let name: String
     let county: String
 
     var id: String { domain }
+}
+
+/// Sign-in state, backed by Supabase Auth.
+///
+/// An account is what makes "three people say it's gone" mean three people, and
+/// what lets a reporter — and only that reporter — take down their own report.
+///
+/// Whether an account is a township account is decided on the server, from a
+/// confirmed email on a municipal domain. Nothing here can grant it.
+@MainActor
+final class AccountStore: ObservableObject {
+    @Published private(set) var account: Account?
+    /// Set while an emailed confirmation is outstanding for this address.
+    @Published var pendingEmail: String?
+
+    private var session: StoredSession?
+    private static let sessionKey = "session"
+    private static let accountKey = "account"
+
+    init() {
+        if let saved = Keychain.read(Self.sessionKey),
+           let session = try? JSONDecoder().decode(StoredSession.self, from: Data(saved.utf8)) {
+            self.session = session
+            // Sign-in is required, so the last known account is restored at once:
+            // someone already signed in should not be locked out of the map with
+            // no signal. `restore()` then checks the session with the server.
+            if let saved = Keychain.read(Self.accountKey) {
+                self.account = try? JSONDecoder().decode(Account.self, from: Data(saved.utf8))
+            }
+        }
+    }
+
+    var isSignedIn: Bool { account != nil }
+
+    // MARK: - Session
+
+    /// A current access token, refreshed first if it is about to expire.
+    /// Returns nil when signed out. If the server rejects the refresh — the
+    /// session was revoked — this signs out; if the network is down it keeps the
+    /// session and returns the old token.
+    func validToken() async -> String? {
+        guard let session else { return nil }
+        guard session.expiresAt.timeIntervalSinceNow < 60 else { return session.accessToken }
+        do {
+            let fresh: SessionResponse = try await BackendAPI().send(
+                "POST", "auth/v1/token", query: [URLQueryItem(name: "grant_type", value: "refresh_token")],
+                body: ["refresh_token": session.refreshToken])
+            store(fresh)
+            return fresh.access_token
+        } catch let error as APIError where error.status != nil {
+            clearSession()
+            return nil
+        } catch {
+            return session.accessToken
+        }
+    }
+
+    /// A client carrying the current session, or nil when signed out.
+    func authorizedAPI() async -> BackendAPI? {
+        guard let token = await validToken() else { return nil }
+        return BackendAPI(token: token)
+    }
+
+    /// Re-validates a saved session on launch and refreshes the role.
+    func restore() async {
+        guard session != nil else { return }
+        await loadProfile()
+    }
+
+    // MARK: - Signing in
+
+    func signUp(email: String, password: String, kind: AccountKind) async throws {
+        let email = Self.normalise(email)
+        if kind == .township { try await requireTownshipDomain(email) }
+        let reply: SignUpResponse = try await BackendAPI().send("POST", "auth/v1/signup", body: [
+            "email": email, "password": password, "data": ["account_type": kind.rawValue]
+        ])
+        if let token = reply.access_token, let refresh = reply.refresh_token, let user = reply.user {
+            // Only when the project has email confirmation switched off.
+            store(SessionResponse(access_token: token, refresh_token: refresh,
+                                  expires_in: reply.expires_in ?? 3600, user: user))
+            await loadProfile()
+        } else {
+            pendingEmail = email
+        }
+    }
+
+    func signIn(email: String, password: String, kind: AccountKind) async throws {
+        let email = Self.normalise(email)
+        do {
+            let reply: SessionResponse = try await BackendAPI().send(
+                "POST", "auth/v1/token", query: [URLQueryItem(name: "grant_type", value: "password")],
+                body: ["email": email, "password": password])
+            try await adopt(reply, kind: kind)
+        } catch let error as APIError where error.code == "email_not_confirmed" {
+            // Right password, unconfirmed address: send a fresh email and ask for the code.
+            pendingEmail = email
+            try? await resendCode()
+        }
+    }
+
+    func verify(code: String) async throws {
+        guard let pendingEmail else { return }
+        let reply: SessionResponse = try await BackendAPI().send("POST", "auth/v1/verify", body: [
+            "type": "signup", "email": pendingEmail, "token": code.trimmingCharacters(in: .whitespaces)
+        ])
+        try await adopt(reply, kind: .resident)
+    }
+
+    func resendCode() async throws {
+        guard let pendingEmail else { return }
+        let _: BackendAPI.Empty = try await BackendAPI().send("POST", "auth/v1/resend",
+                                                              body: ["type": "signup", "email": pendingEmail])
+    }
+
+    func signInWithGoogle(kind: AccountKind) async throws {
+        let idToken = try await GoogleSignIn.idToken()
+        let reply: SessionResponse = try await BackendAPI().send(
+            "POST", "auth/v1/token", query: [URLQueryItem(name: "grant_type", value: "id_token")],
+            body: ["provider": "google", "id_token": idToken])
+        try await adopt(reply, kind: kind)
+    }
+
+    func signOut() async {
+        if let token = session?.accessToken {
+            let _: BackendAPI.Empty? = try? await BackendAPI(token: token).send("POST", "auth/v1/logout")
+        }
+        clearSession()
+    }
+
+    func townshipDomains() async -> [TownshipDomain] {
+        (try? await BackendAPI().send("GET", "rest/v1/township_domains", query: [
+            URLQueryItem(name: "select", value: "domain,name,county"),
+            URLQueryItem(name: "order", value: "name")
+        ])) ?? []
+    }
+
+    // MARK: - Internals
+
+    private static func normalise(_ email: String) -> String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    /// Fails early, with a clear message, when a township sign-up or sign-in uses
+    /// an address that is not on a municipal domain. The server enforces the same
+    /// rule; this only spares the person a confusing error.
+    private func requireTownshipDomain(_ email: String) async throws {
+        let township: String? = try await BackendAPI().send("POST", "rest/v1/rpc/township_for_email",
+                                                            body: ["p_email": email])
+        if township == nil {
+            throw APIError.server(status: 400, detail: "That email is not on a recognised township domain. Use your official municipal address, or sign in as a resident instead.", code: "not_township")
+        }
+    }
+
+    private func adopt(_ reply: SessionResponse, kind: AccountKind) async throws {
+        if kind == .township {
+            do {
+                try await requireTownshipDomain(reply.user.email ?? "")
+            } catch {
+                let _: BackendAPI.Empty? = try? await BackendAPI(token: reply.access_token).send("POST", "auth/v1/logout")
+                throw error
+            }
+        }
+        store(reply)
+        pendingEmail = nil
+        await loadProfile()
+
+        // Someone with a confirmed municipal address who first signed up as a
+        // resident (or with Google) is asking to be treated as township staff.
+        // Recording that request is all the app can do; the server grants the role
+        // only because the address is confirmed and on the list.
+        if kind == .township, account?.isTownship == false, let token = session?.accessToken {
+            let _: BackendAPI.Empty? = try? await BackendAPI(token: token).send(
+                "PUT", "auth/v1/user", body: ["data": ["account_type": "township"]])
+            await loadProfile()
+        }
+    }
+
+    private func loadProfile() async {
+        guard let api = await authorizedAPI(), let session else { return }
+        guard let rows: [Profile] = try? await api.send("GET", "rest/v1/profiles", query: [
+            URLQueryItem(name: "select", value: "role,township")
+        ]) else { return }   // Offline: keep whatever was restored.
+        let profile = rows.first
+        let current = Account(id: session.userID, email: session.email,
+                              role: profile?.role ?? "resident", township: profile?.township)
+        account = current
+        if let data = try? JSONEncoder().encode(current) {
+            Keychain.save(String(decoding: data, as: UTF8.self), for: Self.accountKey)
+        }
+    }
+
+    private func store(_ reply: SessionResponse) {
+        let stored = StoredSession(accessToken: reply.access_token,
+                                   refreshToken: reply.refresh_token,
+                                   expiresAt: Date().addingTimeInterval(TimeInterval(reply.expires_in)),
+                                   userID: reply.user.id,
+                                   email: reply.user.email ?? "")
+        session = stored
+        if let data = try? JSONEncoder().encode(stored) {
+            Keychain.save(String(decoding: data, as: UTF8.self), for: Self.sessionKey)
+        }
+        if account == nil {
+            account = Account(id: stored.userID, email: stored.email, role: "resident", township: nil)
+        }
+    }
+
+    private func clearSession() {
+        session = nil
+        account = nil
+        pendingEmail = nil
+        Keychain.delete(Self.sessionKey)
+        Keychain.delete(Self.accountKey)
+    }
+
+    private struct StoredSession: Codable {
+        let accessToken: String
+        let refreshToken: String
+        let expiresAt: Date
+        let userID: String
+        let email: String
+    }
+
+    private struct AuthUser: Decodable {
+        let id: String
+        let email: String?
+    }
+
+    private struct SessionResponse: Decodable {
+        let access_token: String
+        let refresh_token: String
+        let expires_in: Int
+        let user: AuthUser
+    }
+
+    /// Sign-up answers with a bare user while confirmation is pending, or with a
+    /// full session when confirmation is switched off.
+    private struct SignUpResponse: Decodable {
+        let access_token: String?
+        let refresh_token: String?
+        let expires_in: Int?
+        let user: AuthUser?
+    }
+
+    private struct Profile: Decodable {
+        let role: String
+        let township: String?
+    }
 }
