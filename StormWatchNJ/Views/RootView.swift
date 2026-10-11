@@ -6,6 +6,8 @@ struct RootView: View {
     @EnvironmentObject private var store: HazardStore
     @EnvironmentObject private var account: AccountStore
     @EnvironmentObject private var floodAlerts: FloodAlertService
+    @EnvironmentObject private var notifications: NotificationManager
+    @EnvironmentObject private var settings: AppSettings
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab = RootView.initialTab
@@ -46,14 +48,39 @@ struct RootView: View {
         .task {
             location.requestPermission()
             location.startUpdates()
+            notifications.updateArea(location.coordinate, radiusMiles: settings.searchRadiusMiles)
+            // Asked here, once signed in and looking at the map, rather than on
+            // first launch before the app has shown what it is for.
+            if notifications.authorization == .notDetermined { await notifications.requestPermission() }
             await HazardSync.pull(into: store, account: account)
             await usgs.refresh()
             await floodAlerts.load(at: location.coordinate)
+            notifications.process(alerts: floodAlerts.active)
         }
-        // Someone else may have removed or voted on a hazard while the app was away.
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            Task { await HazardSync.pull(into: store, account: account) }
+            switch phase {
+            case .active:
+                // Someone else may have removed or voted on a hazard while the app was away.
+                Task {
+                    await notifications.refreshAuthorization()
+                    await HazardSync.pull(into: store, account: account)
+                }
+            case .background:
+                BackgroundRefresh.schedule()
+            default:
+                break
+            }
+        }
+        .onChange(of: location.coordinate.latitude) { _, _ in
+            notifications.updateArea(location.coordinate, radiusMiles: settings.searchRadiusMiles)
+        }
+        .onChange(of: settings.searchRadiusMiles) { _, radius in
+            notifications.updateArea(location.coordinate, radiusMiles: radius)
+        }
+        .onChange(of: notifications.pendingTab) { _, tab in
+            guard let tab else { return }
+            selectedTab = tab
+            notifications.pendingTab = nil
         }
     }
 }

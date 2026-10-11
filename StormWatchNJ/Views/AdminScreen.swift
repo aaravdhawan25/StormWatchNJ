@@ -8,6 +8,7 @@ struct AdminScreen: View {
     @EnvironmentObject private var usgs: USGSService
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var account: AccountStore
+    @EnvironmentObject private var notifications: NotificationManager
 
     /// One sheet state for share and preview — stacking two `.sheet` modifiers on
     /// the same view does not reliably present both.
@@ -32,6 +33,7 @@ struct AdminScreen: View {
                 queueSection
                 exportSection
                 publicWorksSection
+                notificationSection
                 sharingSection
                 demoSection
                 backendSection
@@ -187,6 +189,33 @@ struct AdminScreen: View {
             Text("Public works relay")
         } footer: {
             Text("Every report you post is filed over the Open311 civic standard, and towns that have opted in receive it at their public works desk. The feed link can be added to ArcGIS Online or QGIS as a live layer. Photos are never sent.")
+        }
+    }
+
+    private var notificationSection: some View {
+        Section {
+            switch notifications.authorization {
+            case .notDetermined:
+                Button {
+                    Task { await notifications.requestPermission() }
+                } label: {
+                    Label("Turn on notifications", systemImage: "bell.badge.fill")
+                }
+            case .denied:
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                } label: {
+                    Label("Notifications are off — open Settings", systemImage: "bell.slash.fill")
+                }
+            default:
+                Toggle("Flood alerts where I am", isOn: $notifications.floodAlertsEnabled)
+                Toggle("Impassable roads and downed wires nearby", isOn: $notifications.nearbyHazardsEnabled)
+                Toggle("Updates on my reports", isOn: $notifications.myReportsEnabled)
+            }
+        } header: {
+            Text("Notifications")
+        } footer: {
+            Text("StormWatch checks for these when it's open and when iOS lets it refresh in the background, so they can arrive late and won't arrive at all if you force-quit the app. For life-safety warnings, keep Emergency Alerts on in the iPhone's Settings.")
         }
     }
 

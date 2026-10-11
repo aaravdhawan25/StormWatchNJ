@@ -151,6 +151,7 @@ final class AccountStore: ObservableObject {
         if let token = session?.accessToken {
             let _: BackendAPI.Empty? = try? await BackendAPI(token: token).send("POST", "auth/v1/logout")
         }
+        AppServices.shared.notifications.reset()
         clearSession()
     }
 

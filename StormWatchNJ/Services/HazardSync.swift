@@ -73,6 +73,7 @@ enum HazardSync {
         guard let api = await account.authorizedAPI(),
               let hazards: [ServerHazard] = try? await api.send("POST", "rest/v1/rpc/list_hazards", body: [:]) else { return }
         store.merge(serverHazards: hazards)
+        AppServices.shared.notifications.process(hazards: hazards, accountID: account.account?.id)
     }
 
     struct VoteResult: Decodable {
@@ -98,6 +99,7 @@ enum HazardSync {
         } catch let error as APIError where error.code == "P0002" {
             // Already gone on the server; fall through and drop the local copy.
         }
+        AppServices.shared.notifications.forgetMyReport(ticket)
         store.delete(report)
     }
 

@@ -278,6 +278,32 @@ banner.
 The app never sends the text itself. Local officials are the final word on which
 shelters are open.
 
+### Notifications
+
+The app asks for notification permission once you are signed in, and then tells you
+about three things:
+
+| Notification | When |
+| --- | --- |
+| **Flood alert in effect** | The National Weather Service issues a flood alert where you are |
+| **Hazard nearby** | Someone reports an impassable road or downed wire inside your search radius |
+| **Your report** | A crew is assigned, it is resolved, or it comes off the map |
+
+Minor hazards, hazards outside your radius, and your own reports never notify, and
+signing in does not announce what is already on the map. Each type has a switch in
+**DPW → Notifications**. Tapping one opens the relevant tab.
+
+**These are local notifications, not server push.** The app raises them after
+checking the server — while it is open, or when iOS wakes it for a background
+refresh. iOS decides when that happens: often within the hour for an app used daily,
+and never once the app has been force-quit. So they are a useful heads-up, not a
+guaranteed emergency alert, and the settings screen says so and points people to the
+iPhone's built-in Emergency Alerts. Instant push would need the Apple Developer
+Program and an APNs sender on the server.
+
+River gauges deliberately do not notify: their flood thresholds in this build are
+demo values, and an alarming notification should not rest on a placeholder.
+
 ### Utility hand-off for downed wires
 
 When a report involves utility lines — the "Utility lines involved" switch, or the

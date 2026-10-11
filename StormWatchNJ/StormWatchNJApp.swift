@@ -2,12 +2,17 @@ import SwiftUI
 
 @main
 struct StormWatchNJApp: App {
-    @StateObject private var store = HazardStore()
-    @StateObject private var usgs = USGSService()
-    @StateObject private var location = LocationManager()
-    @StateObject private var settings = AppSettings()
-    @StateObject private var account = AccountStore()
-    @StateObject private var floodAlerts = FloodAlertService()
+    @StateObject private var store = AppServices.shared.store
+    @StateObject private var usgs = AppServices.shared.usgs
+    @StateObject private var location = AppServices.shared.location
+    @StateObject private var settings = AppServices.shared.settings
+    @StateObject private var account = AppServices.shared.account
+    @StateObject private var floodAlerts = AppServices.shared.floodAlerts
+    @StateObject private var notifications = AppServices.shared.notifications
+
+    init() {
+        BackgroundRefresh.register()
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -28,6 +33,7 @@ struct StormWatchNJApp: App {
                 .environmentObject(settings)
                 .environmentObject(account)
                 .environmentObject(floodAlerts)
+                .environmentObject(notifications)
                 .tint(.teal)
         }
     }
