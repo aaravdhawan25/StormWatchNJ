@@ -127,13 +127,21 @@ struct AuthScreen: View {
             Button {
                 run { try await account.signInWithGoogle(kind: kind) }
             } label: {
-                Label("Continue with Google", systemImage: "globe")
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
-                    .background(.white.opacity(0.12), in: Capsule())
-                    .overlay(Capsule().stroke(.white.opacity(0.35), lineWidth: 1))
-                    .foregroundStyle(.white)
+                // Google's dark-theme button: its "G" mark, unaltered, on a near-black
+                // fill with a grey outline.
+                HStack(spacing: 10) {
+                    Image("GoogleG")
+                        .resizable()
+                        .frame(width: 18, height: 18)
+                        .accessibilityHidden(true)
+                    Text("Continue with Google")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color(red: 0.075, green: 0.075, blue: 0.078), in: Capsule())
+                .overlay(Capsule().stroke(Color(red: 0.557, green: 0.569, blue: 0.561), lineWidth: 1))
+                .foregroundStyle(Color(red: 0.89, green: 0.89, blue: 0.89))
             }
             .buttonStyle(.plain)
             .disabled(isWorking)
