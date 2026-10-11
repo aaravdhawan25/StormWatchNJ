@@ -1,31 +1,36 @@
-// Gemini hazard triage for StormWatch NJ.
+// OpenAI hazard triage for StormWatch NJ.
 //
 //   POST /analyze-image   multipart/form-data with an image in the "file" field
 //
-// Signed-in users only, so the Gemini key cannot be spent by strangers. Needs the
-// GEMINI_API_KEY secret; without it this returns 503 and the app falls back to
-// its on-device analysis. The photo is passed to Gemini and not stored.
+// Signed-in users only, so the OpenAI key cannot be spent by strangers. Needs the
+// OPENAI_API_KEY secret (Supabase dashboard > Edge Functions > Secrets); without
+// it this returns 503 and the app falls back to its on-device analysis. The key
+// lives only here, never in the app. The photo is passed to OpenAI for this one
+// request and is not stored by StormWatch.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
 
-const MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+const MODEL = Deno.env.get("OPENAI_MODEL") ?? "gpt-4.1-mini";
 const MAX_BYTES = 8 * 1024 * 1024;
 
-const PROMPT = `You are StormWatch NJ's automated civic infrastructure triage assistant.
-Inspect the uploaded storm incident photo.
+const PROMPT = `You are StormWatch NJ's civic infrastructure triage assistant.
+Inspect the storm incident photo.
 1. Determine the primary hazard category.
 2. Determine travel impassability and severity.
-3. Crucial Safety Check: Look carefully for utility or electrical wires caught in fallen trees or water.
-4. Output a clean, objective description. Describe only what is visible; do not speculate.`;
+3. Crucial safety check: look carefully for utility or electrical wires that are down, or caught in fallen trees or water.
+4. Write a concise 1-2 sentence factual description for a public works crew. Describe only what is visible; do not speculate.
+If the photo does not show a storm hazard, answer OTHER with LOW severity and say so.`;
 
+// Strict structured output: the model can only answer in this shape.
 const SCHEMA = {
-  type: "OBJECT",
+  type: "object",
+  additionalProperties: false,
   properties: {
-    hazard_type: { type: "STRING", enum: ["CLOGGED_DRAIN", "STREET_FLOODING", "DOWNED_TREE", "DOWNED_WIRE", "OTHER"] },
-    severity: { type: "STRING", enum: ["LOW", "MODERATE", "IMPASSABLE"] },
-    utility_lines_involved: { type: "BOOLEAN", description: "True if electrical or utility lines appear snapped, tangled, or touching water/trees." },
-    road_status: { type: "STRING", enum: ["CLEAR_TO_PASS", "ONE_LANE_OPEN", "IMPASSABLE"] },
-    suggested_description: { type: "STRING", description: "Concise 1-2 sentence factual report for emergency DPW crew dispatch." },
+    hazard_type: { type: "string", enum: ["CLOGGED_DRAIN", "STREET_FLOODING", "DOWNED_TREE", "DOWNED_WIRE", "OTHER"] },
+    severity: { type: "string", enum: ["LOW", "MODERATE", "IMPASSABLE"] },
+    utility_lines_involved: { type: "boolean" },
+    road_status: { type: "string", enum: ["CLEAR_TO_PASS", "ONE_LANE_OPEN", "IMPASSABLE"] },
+    suggested_description: { type: "string" },
   },
   required: ["hazard_type", "severity", "utility_lines_involved", "road_status", "suggested_description"],
 };
@@ -41,8 +46,8 @@ Deno.serve(async (req) => {
   const { data: auth } = await admin.auth.getUser(token);
   if (!auth?.user) return reply({ detail: "Sign in to do that." }, 401);
 
-  const key = Deno.env.get("GEMINI_API_KEY");
-  if (!key) return reply({ detail: "Gemini is not configured on this server." }, 503);
+  const key = Deno.env.get("OPENAI_API_KEY");
+  if (!key) return reply({ detail: "AI analysis isn't set up on the server yet." }, 503);
 
   let file: FormDataEntryValue | null;
   try {
@@ -53,23 +58,35 @@ Deno.serve(async (req) => {
   if (!(file instanceof File) || !file.type.startsWith("image/")) return reply({ detail: "File must be an image." }, 400);
   if (file.size > MAX_BYTES) return reply({ detail: "Image is too large." }, 413);
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-    body: JSON.stringify({
-      contents: [{ parts: [{ inline_data: { mime_type: file.type, data: encodeBase64(await file.arrayBuffer()) } }, { text: PROMPT }] }],
-      generationConfig: { responseMimeType: "application/json", responseSchema: SCHEMA, temperature: 0.1 },
-    }),
-    signal: AbortSignal.timeout(25_000),
-  });
+  const image = `data:${file.type};base64,${encodeBase64(await file.arrayBuffer())}`;
+  let response: Response;
+  try {
+    response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: MODEL,
+        temperature: 0.1,
+        max_tokens: 300,
+        messages: [{
+          role: "user",
+          content: [{ type: "text", text: PROMPT }, { type: "image_url", image_url: { url: image, detail: "low" } }],
+        }],
+        response_format: { type: "json_schema", json_schema: { name: "hazard_analysis", strict: true, schema: SCHEMA } },
+      }),
+      signal: AbortSignal.timeout(25_000),
+    });
+  } catch {
+    return reply({ detail: "AI analysis timed out." }, 504);
+  }
   if (!response.ok) {
-    console.error("gemini", response.status, await response.text());
-    return reply({ detail: "AI vision processing failed." }, 502);
+    // Log the provider's answer for debugging; never echo it to the client.
+    console.error("openai", response.status, (await response.text()).slice(0, 500));
+    return reply({ detail: "AI analysis failed." }, 502);
   }
   try {
-    const text = (await response.json()).candidates[0].content.parts[0].text;
-    return reply(JSON.parse(text));
+    return reply(JSON.parse((await response.json()).choices[0].message.content));
   } catch {
-    return reply({ detail: "AI vision returned an unreadable answer." }, 502);
+    return reply({ detail: "AI analysis returned an unreadable answer." }, 502);
   }
 });

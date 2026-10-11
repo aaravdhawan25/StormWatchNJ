@@ -7,8 +7,8 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(searchRadiusMiles, forKey: Keys.radius) }
     }
 
-    /// When on, Snap & Triage sends the photo to Gemini through the server
-    /// instead of analyzing it on the device.
+    /// When on (the default), Snap & Triage sends the photo to OpenAI through the
+    /// server; off, it is analyzed on the device and never leaves it.
     @Published var useRemoteTriage: Bool {
         didSet { defaults.set(useRemoteTriage, forKey: Keys.useRemote) }
     }
@@ -34,12 +34,12 @@ final class AppSettings: ObservableObject {
         self.defaults = defaults
         let storedRadius = defaults.double(forKey: Keys.radius)
         self.searchRadiusMiles = storedRadius > 0 ? storedRadius : 5.0
-        self.useRemoteTriage = defaults.bool(forKey: Keys.useRemote)
+        self.useRemoteTriage = defaults.object(forKey: Keys.useRemote) as? Bool ?? true
         self.offerNextdoorShare = defaults.object(forKey: Keys.nextdoor) as? Bool ?? true
     }
 
     /// The engine Snap & Triage should use right now. Falls back to on-device
-    /// analysis when Gemini is off or nobody is signed in, so the flow never dead-ends.
+    /// analysis when OpenAI is off or nobody is signed in, so the flow never dead-ends.
     func triageEngine(token: String?) -> any TriageEngine {
         guard useRemoteTriage, let token else { return OnDeviceTriageEngine() }
         return RemoteTriageEngine(token: token)

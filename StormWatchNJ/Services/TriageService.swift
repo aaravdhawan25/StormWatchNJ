@@ -42,7 +42,7 @@ struct TriageContext {
 ///
 /// This is deliberately a transparent heuristic, not a trained hazard model. It
 /// proposes; the resident disposes. For a real multimodal model, point the app at
-/// the Gemini backend in `backend/`.
+/// OpenAI through the `analyze-image` server function.
 struct OnDeviceTriageEngine: TriageEngine {
     var name: String { "On-device analysis" }
 
@@ -245,11 +245,12 @@ struct OnDeviceTriageEngine: TriageEngine {
 // MARK: - Remote engine
 
 /// Calls the `analyze-image` server function,
-/// which runs the photo through Gemini with a strict JSON response schema.
+/// which runs the photo through an OpenAI vision model with a strict JSON schema.
+/// The OpenAI key lives on the server; the app never holds it.
 struct RemoteTriageEngine: TriageEngine {
-    let name = "Gemini (StormWatch server)"
+    let name = "OpenAI vision"
     /// The signed-in user's access token; the endpoint refuses anyone else so the
-    /// Gemini key cannot be spent by strangers.
+    /// OpenAI key cannot be spent by strangers.
     let token: String
 
     func analyze(image: UIImage, imageData: Data, context: TriageContext) async throws -> HazardAnalysis {
@@ -273,7 +274,8 @@ struct RemoteTriageEngine: TriageEngine {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw TriageError.badResponse }
         guard (200..<300).contains(http.statusCode) else {
-            throw TriageError.server(http.statusCode, String(data: data, encoding: .utf8) ?? "")
+            let detail = ((try? JSONSerialization.jsonObject(with: data)) as? [String: Any])?["detail"] as? String
+            throw TriageError.server(http.statusCode, detail ?? "The server returned an error.")
         }
 
         let payload = try JSONDecoder().decode(Payload.self, from: data)
@@ -285,7 +287,7 @@ struct RemoteTriageEngine: TriageEngine {
             suggestedDescription: payload.suggested_description,
             engine: name,
             confidence: 1.0,
-            evidence: ["Analyzed by Gemini with a strict JSON response schema"]
+            evidence: ["Analyzed by an OpenAI vision model", "The photo was sent to OpenAI for this analysis"]
         )
     }
 
@@ -306,7 +308,7 @@ struct RemoteTriageEngine: TriageEngine {
             case .badResponse:
                 return "The backend returned an unexpected response."
             case .server(let code, let detail):
-                return "Backend error \(code). \(detail)"
+                return detail
             }
         }
     }

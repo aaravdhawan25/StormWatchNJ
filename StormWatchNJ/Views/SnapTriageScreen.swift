@@ -422,7 +422,9 @@ struct SnapTriageScreen: View {
             .tint(Theme.teal)
             .disabled(details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-            Text("The photo stays on this device. Only the fields above are published.")
+            Text(settings.useRemoteTriage
+                 ? "The photo is sent to OpenAI for analysis and is never published. Only the fields above go on the map."
+                 : "The photo stays on this device. Only the fields above are published.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -470,7 +472,7 @@ struct SnapTriageScreen: View {
         } catch {
             // A backend that is unreachable should not dead-end the resident, so
             // fall back to the on-device engine and say so.
-            errorMessage = "\(engine.name) failed: \(error.localizedDescription) Using on-device triage instead."
+            errorMessage = "\(error.localizedDescription) Used on-device analysis instead."
             if let fallback = try? await OnDeviceTriageEngine().analyze(image: image, imageData: data, context: context) {
                 apply(fallback)
             }

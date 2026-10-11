@@ -30,7 +30,7 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>StormWatch NJ uses the camera so you can photograph a flooded street, blocked storm drain or downed tree. Photos stay on your device.</string>
+	<string>StormWatch NJ uses the camera so you can photograph a flooded street, blocked storm drain or downed tree. Photos are never published; with AI analysis on, a photo is sent to OpenAI to read the scene.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>StormWatch NJ uses your location to show hazards within a few miles of you and to tag a report you choose to submit. Your location is never uploaded on its own.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -121,7 +121,7 @@ struct HazardDetailView: View {
                     Label("Share to Nextdoor", systemImage: "person.2.fill")
                 }
             } footer: {
-                Text("Opens Nextdoor's post composer with the details filled in. You review it and post there — nothing is sent automatically, and the photo stays on this device.")
+                Text("Opens Nextdoor's post composer with the details filled in. You review it and post there — nothing is sent automatically, and the photo is not included.")
             }
 
             publicWorksSection

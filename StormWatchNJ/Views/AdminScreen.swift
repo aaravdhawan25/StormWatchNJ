@@ -202,7 +202,7 @@ struct AdminScreen: View {
 
     private var backendSection: some View {
         Section {
-            Toggle("Use Gemini for AI triage", isOn: $settings.useRemoteTriage)
+            Toggle("Use OpenAI for photo analysis", isOn: $settings.useRemoteTriage)
 
             VStack(alignment: .leading) {
                 HStack {
@@ -215,7 +215,7 @@ struct AdminScreen: View {
         } header: {
             Text("Configuration")
         } footer: {
-            Text("Off, photos are analyzed on this device — no network needed. On, the photo is sent to Google's Gemini through the StormWatch server for a more capable read; if that fails the app falls back to on-device analysis.")
+            Text("On, the photo you take is sent to OpenAI for analysis, which reads the scene far better — it can spot a downed wire, for example. It is not stored by StormWatch or published. Off, photos are analyzed on this device and never leave it. If OpenAI can't be reached, the app falls back to on-device analysis.")
         }
     }
 

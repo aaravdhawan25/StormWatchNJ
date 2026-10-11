@@ -60,10 +60,13 @@ field stays editable and nothing is published until you tap **Post report**.
 > detects this, falls back to colour analysis alone, caps confidence lower and says
 > so in the results. On a real device both signals are used.
 
-Flip **Use Gemini for AI triage** in the DPW tab to route photos to Google's Gemini
-through the `analyze-image` server function for a real multimodal model. It needs
-the `GEMINI_API_KEY` secret set in Supabase. If that call fails, the
-app falls back to on-device analysis and tells you why.
+**OpenAI vision (on by default).** With **Use OpenAI for photo analysis** on in
+the DPW tab, the photo goes to the `analyze-image` server function, which asks an
+OpenAI vision model (`gpt-4.1-mini`) for a strictly structured answer. It reads
+scenes far better than the on-device heuristic — on the bundled flooded-road scene
+it also catches the downed wire. The OpenAI key is a Supabase secret
+(`OPENAI_API_KEY`); it is never in the app or this repository. If the call fails or
+the secret is not set, the app falls back to on-device analysis and says so.
 
 ### River telemetry
 
@@ -96,7 +99,7 @@ Everything that defines it is in `supabase/`:
 | Rules | `migrations/0002_rules.sql` | Reporting, the three-vote rule, removal, crew status, township roles |
 | Open311 | `functions/georeport` | GeoReport v2: services, service definitions, GET and POST requests |
 | GIS feed | `functions/hazard-feed` | GeoJSON layer — add by URL in ArcGIS Online or QGIS |
-| Gemini triage | `functions/analyze-image` | Photo analysis; needs the `GEMINI_API_KEY` secret |
+| AI triage | `functions/analyze-image` | Photo analysis by OpenAI; needs the `OPENAI_API_KEY` secret |
 
 **How access is controlled.** Every table has row level security on, with no
 policies for app users except reading the town list and your own profile. The app
@@ -176,7 +179,7 @@ Agency, `NextdoorShare` is the seam to swap for that API.
 Two limitations worth knowing:
 
 - **The photo is not carried over.** The Share Plugin takes text only, which is
-  consistent with the app's promise that photos stay on your device.
+  consistent with the app's promise that photos are never published.
 - **The precise coordinate is not included** — only the municipality and your
   description, since a Nextdoor post is public to the whole neighborhood.
 
@@ -357,5 +360,8 @@ swift Tools/make_app_icon.swift StormWatchNJ/Assets.xcassets/AppIcon.appiconset/
 
 ## Privacy
 
-Photos stay on the device; only the fields you confirm are published. Your location is
+Photos are never published or stored by StormWatch; only the fields you confirm go
+on the map. With OpenAI photo analysis on (the default), each photo is sent to
+OpenAI once to read the scene; turn it off in the DPW tab and photos never leave the
+device. Your location is
 attached to a report only when you submit one, and is never uploaded on its own.

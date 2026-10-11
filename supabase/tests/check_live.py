@@ -105,7 +105,7 @@ s, d, _ = call("POST", "/rest/v1/rpc/vote_not_there", token=vot, body={"p_hazard
 
 print("-- analyze-image")
 s, d, _ = call("POST", "/functions/v1/analyze-image", key=False); check("no token refused", s == 401, (s, d))
-s, d, _ = call("POST", "/functions/v1/analyze-image", token=rep, form={"x": "y"}); check("signed in, no Gemini key: 503", s == 503, (s, d))
+s, d, _ = call("POST", "/functions/v1/analyze-image", token=rep, form={"x": "y"}); check("signed in, no AI key set: 503", s == 503, (s, d))
 s, d, _ = call("POST", "/auth/v1/logout", token=vot); check("logout", s == 204, (s, d))
 print(f"\n{ok} passed, {bad} failed")
 sys.exit(1 if bad else 0)
