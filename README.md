@@ -60,13 +60,15 @@ field stays editable and nothing is published until you tap **Post report**.
 > detects this, falls back to colour analysis alone, caps confidence lower and says
 > so in the results. On a real device both signals are used.
 
-**OpenAI vision (on by default).** With **Use OpenAI for photo analysis** on in
-the DPW tab, the photo goes to the `analyze-image` server function, which asks an
-OpenAI vision model (`gpt-4.1-mini`) for a strictly structured answer. It reads
-scenes far better than the on-device heuristic — on the bundled flooded-road scene
-it also catches the downed wire. The OpenAI key is a Supabase secret
-(`OPENAI_API_KEY`); it is never in the app or this repository. If the call fails or
-the secret is not set, the app falls back to on-device analysis and says so.
+**OpenAI vision does the triage.** Every photo goes to the `analyze-image` server
+function, which asks an OpenAI vision model (`gpt-4.1-mini`) for a strictly
+structured answer. There is no switch to turn it off. The OpenAI key is stored
+encrypted in Supabase Vault and read only by the server function; it is never in
+the app or this repository.
+
+The on-device engine described above is the fallback: if OpenAI cannot be reached —
+no signal, or the service is down — the app uses it instead and says so, so a
+resident can still file a report in the middle of a storm.
 
 ### River telemetry
 
@@ -99,7 +101,7 @@ Everything that defines it is in `supabase/`:
 | Rules | `migrations/0002_rules.sql` | Reporting, the three-vote rule, removal, crew status, township roles |
 | Open311 | `functions/georeport` | GeoReport v2: services, service definitions, GET and POST requests |
 | GIS feed | `functions/hazard-feed` | GeoJSON layer — add by URL in ArcGIS Online or QGIS |
-| AI triage | `functions/analyze-image` | Photo analysis by OpenAI; needs the `OPENAI_API_KEY` secret |
+| AI triage | `functions/analyze-image` | Photo analysis by OpenAI; key held in Supabase Vault |
 
 **How access is controlled.** Every table has row level security on, with no
 policies for app users except reading the town list and your own profile. The app
@@ -361,7 +363,5 @@ swift Tools/make_app_icon.swift StormWatchNJ/Assets.xcassets/AppIcon.appiconset/
 ## Privacy
 
 Photos are never published or stored by StormWatch; only the fields you confirm go
-on the map. With OpenAI photo analysis on (the default), each photo is sent to
-OpenAI once to read the scene; turn it off in the DPW tab and photos never leave the
-device. Your location is
+on the map. Each photo is sent to OpenAI once to read the scene. Your location is
 attached to a report only when you submit one, and is never uploaded on its own.

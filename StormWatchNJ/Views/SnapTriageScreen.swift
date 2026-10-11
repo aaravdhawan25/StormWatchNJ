@@ -292,7 +292,11 @@ struct SnapTriageScreen: View {
                 if isAnalyzing {
                     ProgressView().frame(width: 58, height: 58)
                 } else if let analysis {
-                    ConfidenceRing(value: analysis.confidence, tint: analysis.severity.tint)
+                    if let confidence = analysis.confidence {
+                        ConfidenceRing(value: confidence, tint: analysis.severity.tint)
+                    } else {
+                        HazardGlyph(type: analysis.hazardType, size: 58)
+                    }
                 } else {
                     Image(systemName: "sparkles")
                         .font(.title)
@@ -303,7 +307,7 @@ struct SnapTriageScreen: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(isAnalyzing ? "Analyzing scene…" : (analysis?.hazardType.label ?? "Not analyzed yet"))
                         .font(.headline)
-                    Text(analysis?.engine ?? "On-device Vision")
+                    Text(analysis?.engine ?? "OpenAI vision")
                         .font(.caption)
                         .foregroundStyle(Theme.teal)
                 }
@@ -422,9 +426,7 @@ struct SnapTriageScreen: View {
             .tint(Theme.teal)
             .disabled(details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-            Text(settings.useRemoteTriage
-                 ? "The photo is sent to OpenAI for analysis and is never published. Only the fields above go on the map."
-                 : "The photo stays on this device. Only the fields above are published.")
+            Text("The photo is sent to OpenAI for analysis and is never published. Only the fields above go on the map.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)

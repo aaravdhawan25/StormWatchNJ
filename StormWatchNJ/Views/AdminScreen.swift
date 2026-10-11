@@ -202,8 +202,6 @@ struct AdminScreen: View {
 
     private var backendSection: some View {
         Section {
-            Toggle("Use OpenAI for photo analysis", isOn: $settings.useRemoteTriage)
-
             VStack(alignment: .leading) {
                 HStack {
                     Text("Search radius")
@@ -215,7 +213,7 @@ struct AdminScreen: View {
         } header: {
             Text("Configuration")
         } footer: {
-            Text("On, the photo you take is sent to OpenAI for analysis, which reads the scene far better — it can spot a downed wire, for example. It is not stored by StormWatch or published. Off, photos are analyzed on this device and never leave it. If OpenAI can't be reached, the app falls back to on-device analysis.")
+            Text("Photos you take are analyzed by OpenAI, which reads the scene and fills in the report. They are not stored by StormWatch or published. If OpenAI can't be reached, the app uses a simpler on-device analysis so you can still file.")
         }
     }
 

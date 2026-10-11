@@ -14,7 +14,9 @@ struct HazardAnalysis: Equatable {
     /// Human-readable name of whatever produced this result, shown in the UI so a
     /// resident always knows the fields were machine-filled.
     var engine: String
-    var confidence: Double
+    /// How sure the engine is, 0...1 — nil when the engine does not report one.
+    /// OpenAI returns no such number, and inventing "100%" would be false precision.
+    var confidence: Double?
     /// Short plain-English lines explaining what the engine actually saw.
     var evidence: [String]
 }
@@ -286,7 +288,7 @@ struct RemoteTriageEngine: TriageEngine {
             roadStatus: RoadStatus(rawValue: payload.road_status) ?? .oneLaneOpen,
             suggestedDescription: payload.suggested_description,
             engine: name,
-            confidence: 1.0,
+            confidence: nil,
             evidence: ["Analyzed by an OpenAI vision model", "The photo was sent to OpenAI for this analysis"]
         )
     }

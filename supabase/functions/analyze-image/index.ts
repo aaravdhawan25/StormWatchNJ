@@ -2,11 +2,11 @@
 //
 //   POST /analyze-image   multipart/form-data with an image in the "file" field
 //
-// Signed-in users only, so the OpenAI key cannot be spent by strangers. Needs the
-// OPENAI_API_KEY secret (Supabase dashboard > Edge Functions > Secrets); without
-// it this returns 503 and the app falls back to its on-device analysis. The key
-// lives only here, never in the app. The photo is passed to OpenAI for this one
-// request and is not stored by StormWatch.
+// Signed-in users only, so the OpenAI key cannot be spent by strangers. The key
+// is read from the OPENAI_API_KEY function secret if set, otherwise from Supabase
+// Vault (name "openai_api_key"). It lives only on the server, never in the app.
+// The photo is passed to OpenAI for this one request and is not stored by
+// StormWatch.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
 
@@ -46,7 +46,8 @@ Deno.serve(async (req) => {
   const { data: auth } = await admin.auth.getUser(token);
   if (!auth?.user) return reply({ detail: "Sign in to do that." }, 401);
 
-  const key = Deno.env.get("OPENAI_API_KEY");
+  const key = Deno.env.get("OPENAI_API_KEY") ??
+    (await admin.rpc("server_secret", { p_name: "openai_api_key" })).data;
   if (!key) return reply({ detail: "AI analysis isn't set up on the server yet." }, 503);
 
   let file: FormDataEntryValue | null;
