@@ -33,7 +33,8 @@ Requirements: **Xcode 15 or newer**, iOS 17 deployment target.
 | **Nearby** | Active hazards within the radius, nearest first, filterable by hazard type. |
 | **Report** | Snap & Triage: photo → AI analysis → pre-filled draft → you confirm → posted. Camera, photo library, or two built-in sample scenes. |
 | **Alerts** | Flood alerts for your ZIP, open emergency shelters, and all 11 river gauges with live gage height against flood stage. |
-| **DPW** | Open dispatch queue sorted by severity, GeoJSON/CSV export, demo and backend controls. |
+| **Settings** | Account, notifications, search radius, Nextdoor sharing, privacy, and demo controls. |
+| **DPW** | Township accounts only, in place of Nearby: every open hazard sorted by severity, GeoJSON/CSV export, and the GIS feed link. |
 
 ### AI triage
 
@@ -83,7 +84,7 @@ Station names and coordinates are the live values USGS returns.
 
 ### Simulate Nor'easter
 
-DPW tab → **Simulate nor'easter**. Adds clearly-labelled simulated hazards and pushes
+Settings → **Simulate nor'easter**. Adds clearly-labelled simulated hazards and pushes
 every gauge past flood stage, so the map, alert banner and export all have something
 to show on a clear day — useful when recording the two-minute submission video. Turn
 it off to return to live data.
@@ -164,7 +165,7 @@ After you post a report, the app offers to cross-post it to your Nextdoor
 neighborhood. It opens Nextdoor's own post composer with the text written for you
 — hazard, severity, road status, town, and a downed-wire safety line — and you
 review and post it there. The same option lives on every report's detail screen.
-Turn the prompt off in **DPW → Neighborhood sharing**.
+Turn the prompt off in **Settings → Neighborhood sharing**.
 
 This uses Nextdoor's [Share Plugin](https://developer.nextdoor.com/reference/share-plugin)
 (`https://nextdoor.com/sharekit/`), which is an open offering: no API key, no
@@ -291,7 +292,7 @@ about three things:
 
 Minor hazards, hazards outside your radius, and your own reports never notify, and
 signing in does not announce what is already on the map. Each type has a switch in
-**DPW → Notifications**. Tapping one opens the relevant tab.
+**Settings → Notifications**. Tapping one opens the relevant tab.
 
 **These are local notifications, not server push.** The app raises them after
 checking the server — while it is open, or when iOS wakes it for a background

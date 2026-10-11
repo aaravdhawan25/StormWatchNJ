@@ -36,7 +36,7 @@ struct HazardListScreen: View {
                             symbol: "checkmark.shield.fill",
                             title: typeFilter == nil ? "No active hazards nearby" : "Nothing of that type nearby",
                             message: typeFilter == nil
-                                ? "Nothing reported within \(Int(settings.searchRadiusMiles)) miles. Widen the radius in the DPW tab, or be the first to report one."
+                                ? "Nothing reported within \(Int(settings.searchRadiusMiles)) miles. Widen the radius in Settings, or be the first to report one."
                                 : "Try another filter or widen the search radius."
                         )
                         .padding(.top, 30)

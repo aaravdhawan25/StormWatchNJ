@@ -118,8 +118,8 @@ struct SnapTriageScreen: View {
                 Button("Done", role: .cancel) {}
             } message: {
                 Text(settings.offerNextdoorShare
-                     ? "Your report is on the map and in the DPW export queue. Want to tell your neighborhood too? Nextdoor will open with the post written for you — you review it and tap Post there."
-                     : "Your report is on the map and in the DPW export queue.")
+                     ? "Your report is on the map and in the public works queue. Want to tell your neighborhood too? Nextdoor will open with the post written for you — you review it and tap Post there."
+                     : "Your report is on the map and in the public works queue.")
             }
             .alert("Couldn't open Nextdoor", isPresented: $nextdoorFailed) {
                 Button("OK", role: .cancel) {}

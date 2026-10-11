@@ -17,21 +17,32 @@ struct RootView: View {
     static var initialTab: Int {
         #if DEBUG
         let requested = UserDefaults.standard.integer(forKey: "startTab")
-        return (0...4).contains(requested) ? requested : 0
+        return (0...5).contains(requested) ? requested : 0
         #else
         return 0
         #endif
     }
 
+    private var isTownship: Bool { account.account?.isTownship == true }
+
+    /// iPhone shows five tabs before collapsing the rest under "More", so township
+    /// staff get the DPW console in place of the Nearby list. The console's queue
+    /// is their list: every open hazard, worst first.
     var body: some View {
         TabView(selection: $selectedTab) {
             MapScreen()
                 .tag(0)
                 .tabItem { Label("Map", systemImage: "map.fill") }
 
-            HazardListScreen()
-                .tag(1)
-                .tabItem { Label("Nearby", systemImage: "list.bullet") }
+            if isTownship {
+                AdminScreen()
+                    .tag(5)
+                    .tabItem { Label("DPW", systemImage: "building.2.fill") }
+            } else {
+                HazardListScreen()
+                    .tag(1)
+                    .tabItem { Label("Nearby", systemImage: "list.bullet") }
+            }
 
             SnapTriageScreen()
                 .tag(2)
@@ -41,9 +52,19 @@ struct RootView: View {
                 .tag(3)
                 .tabItem { Label("Alerts", systemImage: "exclamationmark.shield.fill") }
 
-            AdminScreen()
+            SettingsScreen()
                 .tag(4)
-                .tabItem { Label("DPW", systemImage: "building.2.fill") }
+                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+        }
+        // The role can change while the app is open (it is re-read from the
+        // server), so never leave someone on a tab they no longer have.
+        .onChange(of: isTownship) { _, township in
+            if township, selectedTab == 1 { selectedTab = 5 }
+            if !township, selectedTab == 5 { selectedTab = 1 }
+        }
+        .onAppear {
+            if isTownship, selectedTab == 1 { selectedTab = 5 }
+            if !isTownship, selectedTab == 5 { selectedTab = 0 }
         }
         .task {
             location.requestPermission()
@@ -79,7 +100,8 @@ struct RootView: View {
         }
         .onChange(of: notifications.pendingTab) { _, tab in
             guard let tab else { return }
-            selectedTab = tab
+            // Hazard notifications point at the list; for staff that is the console.
+            selectedTab = (tab == 1 && isTownship) ? 5 : tab
             notifications.pendingTab = nil
         }
     }

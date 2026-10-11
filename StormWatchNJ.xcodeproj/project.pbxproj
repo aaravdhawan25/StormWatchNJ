@@ -44,6 +44,7 @@
 		7AF3C0C18FDB6877F1DB5CE0 /* RiverGaugeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */; };
 		E87E7855AB782E70CFC5980A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6CF0302716D86B705C24AF /* RootView.swift */; };
 		32C51A84E9633183FCE64D9E /* SafetyScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B31B7E0DFD892030BAC5244 /* SafetyScreens.swift */; };
+		F25EA975CCF7AC30CE755FD4 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6B6E8ABFBB36496FB97307 /* SettingsScreen.swift */; };
 		013AD32867D1B4BF1574101A /* SnapTriageScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */; };
 		2B78B3BF9190624EA15D9FD5 /* StormGraphics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEEADAAA5A19FCB754810041 /* StormGraphics.swift */; };
 		BD801AD40DDB7D30CD09E495 /* SystemPickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */; };
@@ -90,6 +91,7 @@
 		72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiverGaugeScreen.swift; sourceTree = "<group>"; };
 		AB6CF0302716D86B705C24AF /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		0B31B7E0DFD892030BAC5244 /* SafetyScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafetyScreens.swift; sourceTree = "<group>"; };
+		9C6B6E8ABFBB36496FB97307 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapTriageScreen.swift; sourceTree = "<group>"; };
 		AEEADAAA5A19FCB754810041 /* StormGraphics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StormGraphics.swift; sourceTree = "<group>"; };
 		599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPickers.swift; sourceTree = "<group>"; };
@@ -185,6 +187,7 @@
 				72B3A1141388F1F8B64C3F48 /* RiverGaugeScreen.swift */,
 				AB6CF0302716D86B705C24AF /* RootView.swift */,
 				0B31B7E0DFD892030BAC5244 /* SafetyScreens.swift */,
+				9C6B6E8ABFBB36496FB97307 /* SettingsScreen.swift */,
 				C77F42CA46A94BA4424F899C /* SnapTriageScreen.swift */,
 				AEEADAAA5A19FCB754810041 /* StormGraphics.swift */,
 				599862D5EBE21E98F08FE1D4 /* SystemPickers.swift */,
@@ -308,6 +311,7 @@
 				7AF3C0C18FDB6877F1DB5CE0 /* RiverGaugeScreen.swift in Sources */,
 				E87E7855AB782E70CFC5980A /* RootView.swift in Sources */,
 				32C51A84E9633183FCE64D9E /* SafetyScreens.swift in Sources */,
+				F25EA975CCF7AC30CE755FD4 /* SettingsScreen.swift in Sources */,
 				013AD32867D1B4BF1574101A /* SnapTriageScreen.swift in Sources */,
 				2B78B3BF9190624EA15D9FD5 /* StormGraphics.swift in Sources */,
 				BD801AD40DDB7D30CD09E495 /* SystemPickers.swift in Sources */,
