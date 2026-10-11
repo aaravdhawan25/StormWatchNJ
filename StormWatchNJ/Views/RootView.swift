@@ -5,6 +5,7 @@ struct RootView: View {
     @EnvironmentObject private var location: LocationManager
     @EnvironmentObject private var store: HazardStore
     @EnvironmentObject private var account: AccountStore
+    @EnvironmentObject private var floodAlerts: FloodAlertService
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab = RootView.initialTab
@@ -36,7 +37,7 @@ struct RootView: View {
 
             RiverGaugeScreen()
                 .tag(3)
-                .tabItem { Label("Rivers", systemImage: "water.waves") }
+                .tabItem { Label("Alerts", systemImage: "exclamationmark.shield.fill") }
 
             AdminScreen()
                 .tag(4)
@@ -47,6 +48,7 @@ struct RootView: View {
             location.startUpdates()
             await HazardSync.pull(into: store, account: account)
             await usgs.refresh()
+            await floodAlerts.load(at: location.coordinate)
         }
         // Someone else may have removed or voted on a hazard while the app was away.
         .onChange(of: scenePhase) { _, phase in

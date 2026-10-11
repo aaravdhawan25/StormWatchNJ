@@ -32,7 +32,7 @@ Requirements: **Xcode 15 or newer**, iOS 17 deployment target.
 | **Map** | Hazard pins colored by severity plus river-gauge pins, filtered to your search radius. Live counts of impassable roads, downed wires and rising rivers. |
 | **Nearby** | Active hazards within the radius, nearest first, filterable by hazard type. |
 | **Report** | Snap & Triage: photo → AI analysis → pre-filled draft → you confirm → posted. Camera, photo library, or two built-in sample scenes. |
-| **Rivers** | All 11 monitored gauges with live gage height against flood stage. Pull to refresh. |
+| **Alerts** | Flood alerts for your ZIP, open emergency shelters, and all 11 river gauges with live gage height against flood stage. |
 | **DPW** | Open dispatch queue sorted by severity, GeoJSON/CSV export, demo and backend controls. |
 
 ### AI triage
@@ -241,6 +241,38 @@ to come from your own Google account:
 The "Continue with Google" button appears once step 3 is done. This path has not
 been run end to end, because it cannot be without that client ID.
 
+### Flood alerts
+
+**Alerts → Flood alerts** shows flood alerts for a ZIP code — the one you are in by
+default, or any New Jersey ZIP you type. It uses two federal sources, because they
+answer different questions:
+
+| Source | What it shows |
+| --- | --- |
+| National Weather Service (`api.weather.gov`) | Alerts in effect **right now**. NWS is the agency that issues flood watches and warnings. |
+| FEMA OpenFEMA, [IPAWS Archived Alerts](https://www.fema.gov/openfema-data-page/ipaws-archived-alerts-v1) | Flood warnings issued for that spot in the **past 90 days**. |
+
+FEMA's dataset alone could not do the job: FEMA publishes it with a deliberate
+24-hour delay, so it never contains a current warning. It is shown as history and
+labelled that way. The FEMA query matches alerts whose drawn area contains the
+point, which covers flood *warnings*; county-wide *watches* have no drawn area and
+appear only in the live list. When a flood alert is in effect, the map shows a
+banner.
+
+### Shelters
+
+**Alerts → Find a shelter** offers two ways to find an open emergency shelter:
+
+- **FEMA's Open Shelters service** — shelters FEMA lists as open within 50 miles,
+  nearest first, with directions. On an ordinary day there are none near New Jersey,
+  and the screen says so rather than looking broken.
+- **FEMA's text line** — a button that opens Messages with `SHELTER <zip>` addressed
+  to 43362 (4FEMA). You tap send; FEMA replies by text. This works with no data
+  connection, which is when shelters matter most.
+
+The app never sends the text itself. Local officials are the final word on which
+shelters are open.
+
 ### Utility hand-off for downed wires
 
 When a report involves utility lines — the "Utility lines involved" switch, or the
@@ -311,6 +343,8 @@ xcrun simctl launch "iPhone 17 Pro" com.stormwatchnj.StormWatchNJ \
 
 - `-startTab 0…4` — open a given tab on launch
 - `-demoScene floodedRoad|downedTree` — load a sample scene and run triage
+- `-alertTestPoint "lat,lon"` — check live flood alerts somewhere one is in effect
+- `-shelterTestPoint "lat,lon"` — check the shelter list somewhere one is open
 
 ### App icon
 

@@ -4,11 +4,19 @@ import SwiftUI
 
 struct RiverGaugeScreen: View {
     @EnvironmentObject private var usgs: USGSService
+    @EnvironmentObject private var floodAlerts: FloodAlertService
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 10) {
+                    safetyLinks
+
+                    Label("River gauges", systemImage: "water.waves")
+                        .font(.system(.subheadline, design: .rounded).weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 6)
                     statusBanner
                     ForEach(usgs.stations) { station in
                         NavigationLink {
@@ -24,7 +32,7 @@ struct RiverGaugeScreen: View {
             }
             .background(Color(.systemGroupedBackground))
             .safeAreaInset(edge: .top, spacing: 0) {
-                StormHeader(title: "River Telemetry",
+                StormHeader(title: "Flood Watch",
                             subtitle: "\(usgs.stations.count) NJ gauges · live from USGS") {
                     Button {
                         Task { await usgs.refresh() }
@@ -40,6 +48,42 @@ struct RiverGaugeScreen: View {
             .navigationBarHidden(true)
             .refreshable { await usgs.refresh() }
         }
+    }
+
+    /// Entry points to flood alerts and shelters, with the live alert count up front.
+    private var safetyLinks: some View {
+        HStack(spacing: 10) {
+            NavigationLink { FloodAlertsScreen() } label: {
+                safetyTile(symbol: floodAlerts.active.isEmpty ? "checkmark.shield.fill" : "exclamationmark.triangle.fill",
+                           title: "Flood alerts",
+                           detail: floodAlerts.active.isEmpty ? "None in effect"
+                                   : "\(floodAlerts.active.count) in effect now",
+                           colors: floodAlerts.active.isEmpty
+                                   ? [Theme.deep, Theme.teal]
+                                   : [Color(red: 0.78, green: 0.11, blue: 0.11), .orange])
+            }
+            NavigationLink { ShelterScreen() } label: {
+                safetyTile(symbol: "house.lodge.fill", title: "Find a shelter",
+                           detail: "FEMA open shelters",
+                           colors: [Color(red: 0.30, green: 0.32, blue: 0.78), Color(red: 0.24, green: 0.58, blue: 0.86)])
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func safetyTile(symbol: String, title: String, detail: String, colors: [Color]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: symbol).font(.title2.weight(.semibold))
+            Spacer(minLength: 2)
+            Text(title).font(.system(.subheadline, design: .rounded).weight(.bold))
+            Text(detail).font(.caption2).opacity(0.85)
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
+        .padding(14)
+        .background(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous))
+        .shadow(color: colors[0].opacity(0.3), radius: 8, y: 4)
     }
 
     @ViewBuilder

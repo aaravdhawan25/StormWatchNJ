@@ -7,6 +7,7 @@ struct MapScreen: View {
     @EnvironmentObject private var usgs: USGSService
     @EnvironmentObject private var location: LocationManager
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var floodAlerts: FloodAlertService
 
     @State private var camera: MapCameraPosition = .region(
         MKCoordinateRegion(center: NJServiceArea.demoCenter,
@@ -33,6 +34,7 @@ struct MapScreen: View {
                 map
                 VStack(spacing: 8) {
                     statusStrip
+                    if let alert = floodAlerts.active.first { floodNotice(alert) }
                     if location.needsAttention { locationNotice }
                     if settings.simulateNoreaster { simulationNotice }
                 }
@@ -123,6 +125,26 @@ struct MapScreen: View {
         .padding(.horizontal, 6)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+    }
+
+    private func floodNotice(_ alert: FloodAlert) -> some View {
+        NavigationLink { FloodAlertsScreen() } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                Text(floodAlerts.active.count > 1
+                     ? "\(alert.event) and \(floodAlerts.active.count - 1) more in effect"
+                     : "\(alert.event) in effect")
+                    .font(.caption.weight(.bold))
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.caption2.weight(.bold))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(alert.tint, in: Capsule())
+            .foregroundStyle(alert.textOnTint)
+            .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
+        }
+        .buttonStyle(.plain)
     }
 
     private var locationNotice: some View {

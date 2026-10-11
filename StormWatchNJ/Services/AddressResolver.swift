@@ -27,6 +27,17 @@ struct ResolvedAddress: Equatable {
 /// routes by ZIP code. Returns nil when offline or when nothing is found, and
 /// every caller falls back to the town name.
 enum AddressResolver {
+    /// The centre of a New Jersey ZIP code, for looking up alerts or shelters
+    /// somewhere other than where the phone is.
+    static func coordinate(forZIP zip: String) async -> CLLocationCoordinate2D? {
+        guard zip.count == 5, zip.allSatisfy(\.isNumber),
+              let placemark = try? await CLGeocoder().geocodeAddressString("\(zip), NJ, USA").first,
+              let location = placemark.location,
+              placemark.postalCode == zip,
+              NJServiceArea.contains(location.coordinate) else { return nil }
+        return location.coordinate
+    }
+
     static func resolve(latitude: Double, longitude: Double) async -> ResolvedAddress? {
         let location = CLLocation(latitude: latitude, longitude: longitude)
         guard let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first else {

@@ -7,6 +7,7 @@ struct StormWatchNJApp: App {
     @StateObject private var location = LocationManager()
     @StateObject private var settings = AppSettings()
     @StateObject private var account = AccountStore()
+    @StateObject private var floodAlerts = FloodAlertService()
 
     var body: some Scene {
         WindowGroup {
@@ -26,6 +27,7 @@ struct StormWatchNJApp: App {
                 .environmentObject(location)
                 .environmentObject(settings)
                 .environmentObject(account)
+                .environmentObject(floodAlerts)
                 .tint(.teal)
         }
     }
