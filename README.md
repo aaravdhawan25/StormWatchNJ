@@ -25,6 +25,12 @@ Requirements: **Xcode 15 or newer**, iOS 17 deployment target.
 > iPhone, select the target → Signing & Capabilities → pick your Apple ID team and
 > change the bundle ID to something unique to you.
 
+## Web version
+
+`web/` is the same app rebuilt for the browser, shown in an iPhone frame on a
+computer and full-screen on a phone, against the same backend. It is deployed on
+Vercel with `web` as the root directory. See [web/README.md](web/README.md).
+
 ## What's in the app
 
 | Tab | What it does |
@@ -144,7 +150,8 @@ StormWatch/
 │   └── Views/           Map, list, snap & triage, rivers, DPW console
 ├── Tools/
 │   └── generate_xcodeproj.py
-└── supabase/          migrations, server functions, checks
+├── supabase/          migrations, server functions, checks
+└── web/               the web version (React + Vite), for Vercel
 ```
 
 ### Regenerating the project file

@@ -1,0 +1,57 @@
+import { useEffect, useState } from "react";
+import { Building2, Camera, List, Map, Settings, ShieldAlert } from "lucide-react";
+import { NavHost } from "./components/ui";
+import { useStore } from "./lib/store";
+import { MapScreen } from "./screens/MapScreen";
+import { NearbyScreen } from "./screens/Nearby";
+import { ReportScreen } from "./screens/Report";
+import { RiversScreen } from "./screens/Rivers";
+import { SettingsScreen } from "./screens/Settings";
+import { DpwScreen } from "./screens/Dpw";
+import { WelcomeScreen } from "./screens/Welcome";
+import "./app.css";
+
+type Tab = "map" | "nearby" | "dpw" | "report" | "alerts" | "settings";
+
+/** The app itself: welcome until signed in, then five tabs — the same as the iPhone app. */
+export function AppRoot() {
+  const { account, authReady } = useStore();
+  const [tab, setTab] = useState<Tab>("map");
+  const township = account?.role === "township";
+
+  // Township staff get the DPW console in place of Nearby, as on iPhone.
+  useEffect(() => {
+    if (township && tab === "nearby") setTab("dpw");
+    if (!township && tab === "dpw") setTab("nearby");
+  }, [township]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!account) setTab("map"); }, [account]);
+
+  if (!authReady) return <div className="sw" />;
+  if (!account) return <div className="sw"><WelcomeScreen /></div>;
+
+  const tabs: [Tab, string, React.ReactNode][] = [
+    ["map", "Map", <Map size={22} />],
+    township ? ["dpw", "DPW", <Building2 size={22} />] : ["nearby", "Nearby", <List size={22} />],
+    ["report", "Report", <Camera size={22} />],
+    ["alerts", "Alerts", <ShieldAlert size={22} />],
+    ["settings", "Settings", <Settings size={22} />],
+  ];
+
+  return (
+    <div className="sw">
+      <NavHost resetKey={tab}>
+        {tab === "map" && <MapScreen />}
+        {tab === "nearby" && <NearbyScreen />}
+        {tab === "dpw" && <DpwScreen />}
+        {tab === "report" && <ReportScreen />}
+        {tab === "alerts" && <RiversScreen />}
+        {tab === "settings" && <SettingsScreen />}
+        <nav className="tabbar">
+          {tabs.map(([id, label, icon]) => (
+            <button key={id} className={`tab ${tab === id ? "on" : ""}`} onClick={() => setTab(id)}>{icon}{label}</button>
+          ))}
+        </nav>
+      </NavHost>
+    </div>
+  );
+}

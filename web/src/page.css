@@ -1,0 +1,23 @@
+html, body, #root { margin: 0; height: 100%; }
+body { background: radial-gradient(circle at 70% 20%, #12365a, #07142a 60%); color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+.fullscreen { position: fixed; inset: 0; }
+.fullscreen .sw .header, .fullscreen .sw .navbar { padding-top: max(env(safe-area-inset-top), 20px); }
+.page { height: 100%; display: flex; align-items: center; justify-content: center; gap: 64px; padding: 24px; box-sizing: border-box; }
+.intro { max-width: 420px; }
+.intro-icon { border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.intro h1 { font: 800 40px/1.1 ui-rounded, -apple-system, system-ui; margin: 18px 0 10px; }
+.intro .lede { font-size: 17px; line-height: 1.5; opacity: .85; }
+.intro ul { padding-left: 18px; line-height: 1.5; font-size: 15px; opacity: .9; }
+.intro li { margin-bottom: 8px; }
+.intro .note { font-size: 13px; opacity: .6; line-height: 1.5; }
+@media (max-width: 1000px) { .intro { display: none; } }
+.phone-wrap { position: relative; flex-shrink: 0; }
+.phone { position: absolute; top: 0; left: 0; transform-origin: top left; width: 402px; height: 874px; padding: 12px; border-radius: 68px;
+  background: linear-gradient(145deg, #3a3d42, #1c1d20); box-shadow: 0 30px 80px rgba(0,0,0,.55), inset 0 0 0 2px #55585e; }
+.screen-area { position: relative; width: 402px; height: 874px; border-radius: 56px; overflow: hidden; background: #000; transform: translateZ(0); }
+.statusbar { position: absolute; top: 0; left: 0; right: 0; height: 54px; z-index: 1000; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 34px 0 46px; font: 600 17px -apple-system, system-ui; color: #fff; mix-blend-mode: difference; pointer-events: none; }
+.statusbar .icons { display: flex; gap: 6px; align-items: center; }
+.island { position: absolute; left: 50%; top: 11px; width: 126px; height: 37px; margin-left: -63px; border-radius: 20px; background: #000; mix-blend-mode: normal; }
+.home-indicator { position: absolute; bottom: 8px; left: 50%; width: 140px; height: 5px; margin-left: -70px; border-radius: 3px; background: rgba(0,0,0,.35); z-index: 1000; pointer-events: none; }

@@ -1,0 +1,116 @@
+/* StormWatch NJ — iOS-style look, matching the iPhone app's Theme.swift. */
+.sw {
+  --navy: #0a1a33; --deep: #0d2e4f; --teal: #179eb0; --bright: #2ec7d1; --amber: #ffd166;
+  --bg: #f2f2f7; --card: #fff; --text: #000; --muted: #6e6e73; --faint: #aeaeb2; --line: rgba(0,0,0,.08);
+  --red: #ff3b30; --orange: #ff9500; --green: #34c759;
+  position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 15px; -webkit-font-smoothing: antialiased; user-select: none;
+}
+.sw * { box-sizing: border-box; }
+/* :where() keeps these resets at zero specificity so component classes win */
+:where(.sw) button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+:where(.sw) input, :where(.sw) textarea, :where(.sw) select { font: inherit; color: inherit; user-select: text; }
+.rounded { font-family: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif; }
+
+/* screens and scrolling */
+/* isolation keeps the map's own layers (z-index 400+) from covering the tab bar */
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); isolation: isolate; }
+.scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px 16px 120px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.scroll::-webkit-scrollbar { display: none; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+/* Inside a scrolling column, children must keep their natural height. */
+.stack > *, .scroll > * { flex-shrink: 0; }
+
+/* gradient header that ends in a wave */
+.header { position: relative; padding: 58px 20px 36px; color: #fff; flex-shrink: 0;
+  background: radial-gradient(circle at 100% 0, rgba(46,199,209,.35), transparent 60%), linear-gradient(135deg, var(--navy), var(--deep) 55%, rgba(23,158,176,.85)); }
+.header h1 { margin: 0; font: 700 28px/1.1 ui-rounded, -apple-system, system-ui; }
+.header p { margin: 4px 0 0; font-size: 13px; font-weight: 500; opacity: .8; }
+.header .trail { position: absolute; right: 20px; top: 64px; opacity: .85; }
+.header svg.wave { position: absolute; left: 0; right: 0; bottom: -1px; width: 100%; height: 30px; }
+
+/* cards */
+.card { background: var(--card); border-radius: 16px; padding: 14px; border: 1px solid rgba(0,0,0,.04); box-shadow: 0 4px 10px rgba(0,0,0,.05); }
+.card.tight { padding: 12px; }
+.section-title { display: flex; align-items: center; gap: 6px; margin: 10px 4px 0; font: 700 14px ui-rounded, system-ui; color: var(--muted); }
+.caption { font-size: 11px; color: var(--faint); margin: 0 4px; line-height: 1.35; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; } .tiny { font-size: 11px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.spacer { flex: 1; }
+
+/* grouped list, like SwiftUI Form */
+.group { background: var(--card); border-radius: 14px; overflow: hidden; }
+.group > * + * { border-top: 1px solid var(--line); }
+.cell { display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 11px 16px; width: 100%; text-align: left; }
+.cell .val { margin-left: auto; color: var(--muted); font-size: 14px; text-align: right; }
+.cell.link { color: var(--teal); }
+.cell.danger { color: var(--red); justify-content: center; }
+.group-head { margin: 18px 16px 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.group-foot { margin: 6px 16px 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+/* toggles */
+.toggle { position: relative; width: 51px; height: 31px; border-radius: 16px; background: #e9e9eb; transition: background .2s; flex-shrink: 0; margin-left: auto; }
+.toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.2); transition: transform .2s; }
+.toggle.on { background: var(--teal); } .toggle.on::after { transform: translateX(20px); }
+
+/* buttons */
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; border-radius: 14px; font-weight: 600; }
+.btn.primary { background: var(--teal); color: #fff; }
+.btn.soft { background: rgba(23,158,176,.14); color: var(--teal); }
+.btn:disabled { opacity: .45; cursor: default; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 99px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge { padding: 3px 7px; border-radius: 99px; font-size: 9.5px; font-weight: 800; letter-spacing: .02em; white-space: nowrap; }
+
+/* hazard tile */
+.glyph { position: relative; display: grid; place-items: center; flex-shrink: 0; color: #fff; overflow: hidden; }
+.glyph::after { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,.32), transparent 50%); }
+
+/* hazard card with severity stripe */
+.hcard { display: flex; width: 100%; text-align: left; background: var(--card); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,.07); }
+.hcard .stripe { width: 4px; flex-shrink: 0; }
+.hcard .body { display: flex; gap: 12px; padding: 12px; flex: 1; min-width: 0; }
+.clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* tab bar — the floating glass pill of iOS 26 */
+.tabbar { position: absolute; left: 14px; right: 14px; bottom: 22px; height: 64px; display: flex; padding: 5px; border-radius: 32px; z-index: 50;
+  background: rgba(255,255,255,.82); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 27px; font-size: 10.5px; font-weight: 500; color: #111; }
+.tab.on { background: rgba(0,0,0,.07); color: var(--teal); }
+
+/* nav bar for pushed screens */
+.navbar { display: flex; align-items: center; justify-content: center; position: relative; padding: 56px 16px 10px; flex-shrink: 0; font-weight: 600; font-size: 17px; }
+.navbar .back { position: absolute; left: 14px; bottom: 6px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.9); box-shadow: 0 2px 8px rgba(0,0,0,.1); display: grid; place-items: center; }
+
+/* bottom sheet */
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.25); z-index: 80; animation: fade .2s; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 64px; z-index: 81; background: var(--bg); border-radius: 22px 22px 0 0; display: flex; flex-direction: column; overflow: hidden; animation: up .28s cubic-bezier(.2,.8,.2,1); }
+.sheet .grabber { width: 36px; height: 5px; border-radius: 3px; background: rgba(0,0,0,.2); margin: 6px auto 0; flex-shrink: 0; }
+@keyframes up { from { transform: translateY(100%); } }
+@keyframes fade { from { opacity: 0; } }
+
+/* alerts (dialogs) */
+.dialog-wrap { position: absolute; inset: 0; z-index: 95; display: grid; place-items: center; background: rgba(0,0,0,.28); animation: fade .15s; }
+.dialog { width: 290px; border-radius: 26px; padding: 22px 20px 16px; background: rgba(245,245,247,.97); text-align: left; }
+.dialog h3 { margin: 0 0 6px; font-size: 17px; }
+.dialog p { margin: 0 0 16px; font-size: 14px; color: #3c3c43; line-height: 1.35; }
+.dialog .actions { display: flex; gap: 8px; }
+.dialog .actions button { flex: 1; padding: 11px; border-radius: 99px; background: rgba(0,0,0,.07); font-weight: 600; }
+.dialog .actions button.strong { color: var(--teal); }
+
+/* map */
+.leaflet-container { width: 100%; height: 100%; background: #e9eee7; font-family: inherit; }
+.leaflet-control-attribution { font-size: 9px !important; }
+.map-main .leaflet-control-attribution { margin-bottom: 92px !important; }
+.pin { display: grid; place-items: center; border-radius: 50%; border: 2.5px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); color: #fff; }
+.pin-halo { border-radius: 50%; display: grid; place-items: center; }
+.gpin { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); color: #fff; }
+.me-dot { width: 18px; height: 18px; border-radius: 50%; background: #0a84ff; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(10,132,255,.2); }
+.glass { background: rgba(255,255,255,.82); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+
+/* safety banner */
+.danger-banner { background: #c71c1c; color: #fff; padding: 14px; }
+.danger-banner a, .danger-banner button { text-decoration: none; }
+.spinner { width: 26px; height: 26px; border-radius: 50%; border: 3px solid rgba(23,158,176,.2); border-top-color: var(--teal); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
