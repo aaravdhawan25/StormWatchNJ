@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronUp, Hash, Landmark, Lock, Mail } from "lucide-react";
 import { AppLogo, StormBackdrop } from "../components/ui";
+import { GoogleButton } from "../components/GoogleButton";
 import { GOOGLE_ENABLED, supabase } from "../lib/config";
 
 interface Town { domain: string; name: string; county: string }
@@ -52,6 +53,17 @@ export function AuthScreen({ kind: initialKind, creating: initialCreating, onBac
       if (kind === "township") await supabase.auth.updateUser({ data: { account_type: "township" } });
     }
   });
+
+  // Same rules as the iPhone app: a township sign-in needs a Google account on a
+  // listed municipal domain. If it isn't one, the new session is signed out again.
+  const signInWithGoogle = async (token: string, nonce: string) => {
+    const { data, error } = await supabase.auth.signInWithIdToken({ provider: "google", token, nonce });
+    if (error) throw error;
+    if (kind !== "township") return;
+    try { await requireTownship(data.user?.email ?? ""); }
+    catch (e) { await supabase.auth.signOut(); throw e; }
+    if (data.user?.user_metadata?.account_type !== "township") await supabase.auth.updateUser({ data: { account_type: "township" } });
+  };
 
   const verify = () => run(async () => {
     const { error } = await supabase.auth.verifyOtp({ type: "signup", email: pending!, token: code.trim() });
@@ -116,14 +128,12 @@ export function AuthScreen({ kind: initialKind, creating: initialCreating, onBac
                                             autoComplete={creating ? "new-password" : "current-password"} value={password}
                                             onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && submit()} />)}
             {primary(creating ? "Create account" : "Sign in", !!email && password.length >= (creating ? 8 : 1), submit)}
-            {GOOGLE_ENABLED && (
-              <button className="row rounded" onClick={() => run(async () => {
-                        const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
-                        if (error) throw error; })}
-                      style={{ justifyContent: "center", padding: 14, borderRadius: 99, background: "#131314", border: "1px solid #8e918f", color: "#e3e3e3", fontWeight: 600 }}>
-                <img src="/google-g.svg" width={18} height={18} alt="" /> Continue with Google
-              </button>
-            )}
+            {GOOGLE_ENABLED && <>
+              <div className="row" style={{ fontSize: 12, opacity: 0.6, gap: 10 }}>
+                <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,.3)" }} />or<span style={{ flex: 1, height: 1, background: "rgba(255,255,255,.3)" }} />
+              </div>
+              <GoogleButton key={kind} disabled={busy} onError={m => setMessage(m)} onToken={(token, nonce) => run(() => signInWithGoogle(token, nonce))} />
+            </>}
             <button style={{ fontSize: 13, fontWeight: 600, opacity: 0.85 }} onClick={() => { setCreating(!creating); setMessage(null); }}>
               {creating ? "I already have an account" : "New here? Create an account"}
             </button>
@@ -155,5 +165,6 @@ function friendly(message: string): string {
   if (/rate limit|too many/i.test(message)) return "Too many attempts. Wait a minute and try again.";
   if (/recognised township/i.test(message)) return message;
   if (/database error saving new user/i.test(message)) return "That email is not on a recognised township domain.";
+  if (/nonce|audience|unacceptable audience|id token/i.test(message)) return "Google sign-in isn't set up for this website yet. Use email for now.";
   return message;
 }

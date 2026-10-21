@@ -4,6 +4,7 @@ import { DEMO_CENTER, functionURL, inNJ, supabase, SUPABASE_KEY } from "./config
 import { nearestTown, seedHazards, stormSurgeHazards } from "./demoData";
 import type { Hazard, ReportStatus } from "./models";
 import { milesBetween } from "./models";
+import { forgetMine, loadPrefs, processAlerts, processHazards, resetNotifications } from "./notifications";
 import { fetchGauges, fetchLiveAlerts, gaugeAlert, reverseGeocode, STATIONS, type FloodAlert, type Station } from "./publicData";
 
 export type LocationMode = "live" | "waiting" | "denied" | "outside";
@@ -98,6 +99,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [gaugesError, setGaugesError] = useState<string>();
   const [liveAlerts, setLiveAlerts] = useState<FloodAlert[]>([]);
   const photos = useRef(new Map<string, string>());
+  const synced = useRef(false);
 
   // ---- auth
   useEffect(() => {
@@ -120,6 +122,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     localStorage.removeItem(GUEST_KEY); setGuest(false);
     if (session) await supabase.auth.signOut();
+    resetNotifications();
+    synced.current = false;
     setShared([]);
   };
 
@@ -148,17 +152,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const refreshHazards = useCallback(async () => {
     if (session) {
       const { data } = await supabase.rpc("list_hazards");
-      if (data) setShared((data as Row[]).map(fromServer));
+      if (data) { synced.current = true; setShared((data as Row[]).map(fromServer)); }
     } else if (guest) {
       // Guests read the same shared hazards through the public GIS feed.
       try {
         const feed = await (await fetch(functionURL("hazard-feed"))).json();
+        synced.current = true;
         setShared(feed.features.map((f: Row) => fromServer({ ...f.properties, id: f.id,
           latitude: f.geometry.coordinates[1], longitude: f.geometry.coordinates[0], description: f.properties.description })));
       } catch { /* keep what we have */ }
     }
   }, [session, guest]);
   useEffect(() => { refreshHazards(); }, [refreshHazards]);
+
+  // Check for changes every minute while the app is open (the iPhone app does
+  // this in the background as well).
+  useEffect(() => {
+    if (!session && !guest) return;
+    const timer = setInterval(refreshHazards, 60_000);
+    return () => clearInterval(timer);
+  }, [refreshHazards, session, guest]);
+
+  const accountId = session?.user.id ?? (guest ? "guest" : null);
+  useEffect(() => {
+    // Only compare real downloads, never the empty list the app starts with.
+    if (accountId && synced.current) processHazards(shared, accountId, location, settings.radiusMiles, loadPrefs());
+  }, [shared]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const hazards = useMemo(() => [...local, ...shared].map(h => photos.current.has(h.id) ? { ...h, photoURL: photos.current.get(h.id) } : h)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [local, shared]);
@@ -209,6 +228,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const remove = async (h: Hazard) => {
     if (!h.shared) { setLocal(l => l.filter(x => x.id !== h.id)); return; }
+    forgetMine(h.id);
     const { error } = await supabase.rpc("remove_hazard", { p_hazard: h.id });
     if (error && error.code !== "P0002") throw new Error(error.message);
     await refreshHazards();
@@ -236,7 +256,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!account) return;
-    fetchLiveAlerts(location.latitude, location.longitude).then(setLiveAlerts).catch(() => setLiveAlerts([]));
+    const check = () => fetchLiveAlerts(location.latitude, location.longitude)
+      .then(alerts => { setLiveAlerts(alerts); processAlerts(alerts, loadPrefs()); })
+      .catch(() => setLiveAlerts([]));
+    check();
+    const timer = setInterval(check, 5 * 60_000);
+    return () => clearInterval(timer);
   }, [account?.id, location.latitude, location.longitude]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- demo

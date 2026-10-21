@@ -1,5 +1,8 @@
 import { ChevronRight, House, Radio, RefreshCw, ShieldCheck, TriangleAlert, Waves } from "lucide-react";
+import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import { Header, useNav } from "../components/ui";
+import { relativeTime } from "../lib/models";
+import { gaugePin } from "./MapScreen";
 import { gaugeAlert, gaugeColor, gaugeLabel, type Station } from "../lib/publicData";
 import { useStore } from "../lib/store";
 import { FloodAlertsScreen, ShelterScreen } from "./Safety";
@@ -110,7 +113,13 @@ export function StationDetail({ siteID, pushed = false }: { siteID: string; push
           {[["Current gage height", s.heightFt != null ? `${s.heightFt.toFixed(2)} ft` : "—"], ["Action stage", `${s.actionStageFt.toFixed(1)} ft`],
             ["Flood stage", `${s.floodStageFt.toFixed(1)} ft`],
             ...(margin != null ? [[margin >= 0 ? "Below flood stage" : "Above flood stage", `${Math.abs(margin).toFixed(2)} ft`]] : []),
-            ["Alert", gaugeLabel[a]]].map(([k, v]) => <div key={k} className="cell"><span>{k}</span><span className="val">{v}</span></div>)}
+            ["Alert", gaugeLabel[a]], ["Reading time", s.readingTime ? relativeTime(s.readingTime) : "—"]].map(([k, v]) => <div key={k} className="cell"><span>{k}</span><span className="val">{v}</span></div>)}
+        </div>
+        <div style={{ height: 180, borderRadius: 14, overflow: "hidden", pointerEvents: "none", margin: "16px 0 0" }}>
+          <MapContainer center={[s.latitude, s.longitude]} zoom={13} zoomControl={false} style={{ height: "100%" }}>
+            <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
+            <Marker position={[s.latitude, s.longitude]} icon={gaugePin(gaugeColor[a])} />
+          </MapContainer>
         </div>
         <p className="group-foot">Gage height comes from the USGS Water Services instantaneous-values API (parameter 00065). Action and flood thresholds in this build are demo values and must be replaced with official NWS flood stages before real use.</p>
       </div>

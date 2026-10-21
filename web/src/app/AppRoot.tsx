@@ -26,6 +26,19 @@ export function AppRoot() {
   }, [township]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!account) setTab("map"); }, [account]);
 
+  // A tapped notification says which tab to open.
+  useEffect(() => {
+    const open = (target?: string) => {
+      if (target === "alerts") setTab("alerts");
+      if (target === "nearby") setTab(township ? "dpw" : "nearby");
+    };
+    const onWindow = (e: Event) => open((e as CustomEvent).detail);
+    const onWorker = (e: MessageEvent) => { if (e.data?.type === "open-tab") open(e.data.tab); };
+    window.addEventListener("stormwatch-open-tab", onWindow);
+    navigator.serviceWorker?.addEventListener("message", onWorker);
+    return () => { window.removeEventListener("stormwatch-open-tab", onWindow); navigator.serviceWorker?.removeEventListener("message", onWorker); };
+  }, [township]);
+
   if (!authReady) return <div className="sw" />;
   if (!account) return <div className="sw"><WelcomeScreen /></div>;
 

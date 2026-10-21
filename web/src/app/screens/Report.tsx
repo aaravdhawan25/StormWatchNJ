@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Camera, ChevronRight, RotateCcw, Send, Sparkles, BadgeCheck, Wand2, Waves, Leaf, Zap } from "lucide-react";
+import { Camera, ChevronRight, Images, RotateCcw, Send, Sparkles, BadgeCheck, Wand2, Waves, Leaf, Zap } from "lucide-react";
 import { HazardGlyph, Header, StormBackdrop, Toggle, useNav } from "../components/ui";
 import { LifeSafetyBanner } from "../components/LifeSafety";
 import type { HazardType, RoadStatus, Severity } from "../lib/models";
@@ -13,6 +13,7 @@ export function ReportScreen() {
   const store = useStore();
   const nav = useNav();
   const fileRef = useRef<HTMLInputElement>(null);
+  const libraryRef = useRef<HTMLInputElement>(null);
   const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -70,6 +71,7 @@ export function ReportScreen() {
               trailing={photo && <button onClick={reset} aria-label="Start over" style={{ color: "#fff" }}><RotateCcw size={24} /></button>} />
       {showSafety && <div style={{ marginTop: -10, zIndex: 2 }}><LifeSafetyBanner location={`${town}, NJ`} /></div>}
       <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={e => { const f = e.target.files?.[0]; if (f) take(f); e.target.value = ""; }} />
+      <input ref={libraryRef} type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (f) take(f); e.target.value = ""; }} />
       <div className="scroll">
         {!photo ? (
           <div className="stack" style={{ gap: 14 }}>
@@ -90,7 +92,8 @@ export function ReportScreen() {
                 ))}
               </div>
             </div>
-            <button className="btn primary" onClick={() => fileRef.current?.click()}><Camera size={18} /> Take or choose a photo</button>
+            <button className="btn primary" onClick={() => fileRef.current?.click()}><Camera size={18} /> Take a photo</button>
+            <button className="btn soft" onClick={() => libraryRef.current?.click()}><Images size={18} /> Choose from library</button>
             <div className="card">
               <div className="row small muted" style={{ fontWeight: 600, marginBottom: 10 }}><Wand2 size={14} /> Try it with a sample scene</div>
               <div className="row" style={{ gap: 10 }}>

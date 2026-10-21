@@ -19,5 +19,7 @@ export const DEMO_CENTER = { latitude: 40.3318, longitude: -74.5893 };
 export const inNJ = (p: { latitude: number; longitude: number }) =>
   p.latitude >= NJ.minLat && p.latitude <= NJ.maxLat && p.longitude >= NJ.minLon && p.longitude <= NJ.maxLon;
 
-/** Google sign-in needs a Web OAuth client on the Supabase Google provider. */
-export const GOOGLE_ENABLED = import.meta.env.VITE_ENABLE_GOOGLE === "true";
+/** The Google "Web application" OAuth client ID. Its ID must also be listed in
+ *  Supabase's Google provider (Client IDs). Without it, the Google button is hidden. */
+export const GOOGLE_CLIENT_ID: string = (import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "").trim();
+export const GOOGLE_ENABLED = GOOGLE_CLIENT_ID.endsWith(".apps.googleusercontent.com");

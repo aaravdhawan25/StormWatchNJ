@@ -1,0 +1,14 @@
+{
+  "name": "StormWatch NJ",
+  "short_name": "StormWatch",
+  "description": "A neighbor-powered storm hazard map for New Jersey.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1a33",
+  "theme_color": "#0a1a33",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

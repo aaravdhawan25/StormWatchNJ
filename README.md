@@ -30,6 +30,8 @@ Requirements: **Xcode 15 or newer**, iOS 17 deployment target.
 `web/` is the same app rebuilt for the browser, shown in an iPhone frame on a
 computer and full-screen on a phone, against the same backend. It is deployed on
 Vercel with `web` as the root directory. See [web/README.md](web/README.md).
+It has every feature of the iPhone app, including Google sign-in (once a Web OAuth
+client ID is set) and notifications, plus a guest demo mode.
 
 ## What's in the app
 

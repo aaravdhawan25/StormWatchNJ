@@ -26,7 +26,7 @@ function hazardPin(h: Hazard) {
   });
 }
 
-function gaugePin(color: string) {
+export function gaugePin(color: string) {
   return L.divIcon({ className: "", iconSize: [28, 28], iconAnchor: [14, 14],
     html: `<div class="gpin" style="background:${color}">${html(<Waves size={14} strokeWidth={2.6} />)}</div>` });
 }

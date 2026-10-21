@@ -1,4 +1,6 @@
-import { Bell, Building2, EyeOff, Globe, House, LogOut, MapPin, Sparkles, User } from "lucide-react";
+import { useState } from "react";
+import { Bell, BellOff, Building2, EyeOff, Globe, House, LogOut, MapPin, Sparkles, User } from "lucide-react";
+import { loadPrefs, permission, requestPermission, savePrefs, type NotifyPrefs } from "../lib/notifications";
 import { Header, Toggle, useNav } from "../components/ui";
 import { useStore } from "../lib/store";
 
@@ -7,6 +9,11 @@ export function SettingsScreen() {
   const nav = useNav();
   const a = s.account!;
   const township = a.role === "township";
+  const [prefs, setPrefs] = useState(loadPrefs);
+  const [allowed, setAllowed] = useState(permission);
+  const setPref = (k: keyof NotifyPrefs, v: boolean) => { const next = { ...prefs, [k]: v }; setPrefs(next); savePrefs(next); };
+  const standalone = window.matchMedia?.("(display-mode: standalone)").matches;
+  const iPhone = /iPhone|iPad|iPod/.test(navigator.userAgent);
   const subtitle = a.guest ? "Guest demo" : township ? `${a.township ?? "Township"} · verified staff` : "Resident";
 
   return (
@@ -38,9 +45,21 @@ export function SettingsScreen() {
 
         <div className="group-head">Notifications</div>
         <div className="group">
-          <div className="cell"><Bell size={18} color="var(--teal)" /> <span className="small">Flood alerts, nearby hazards and updates on your reports</span></div>
+          {allowed === "granted" ? (
+            <div className="cell"><Bell size={18} color="var(--teal)" /> Notifications are on</div>
+          ) : allowed === "denied" ? (
+            <div className="cell"><BellOff size={18} color="var(--red)" /> <span className="small">Blocked. Allow notifications for this site in your browser's settings.</span></div>
+          ) : allowed === "unsupported" ? (
+            <div className="cell"><BellOff size={18} color="var(--muted)" /> <span className="small">
+              {iPhone && !standalone ? "On iPhone, tap Share → Add to Home Screen, then open StormWatch from there to turn on notifications." : "This browser can't show notifications."}</span></div>
+          ) : (
+            <button className="cell link" onClick={async () => setAllowed(await requestPermission())}><Bell size={18} /> Turn on notifications</button>
+          )}
+          <div className="cell">Flood alerts where you are <Toggle on={prefs.flood} onChange={v => setPref("flood", v)} /></div>
+          <div className="cell">Dangerous hazards nearby <Toggle on={prefs.nearby} onChange={v => setPref("nearby", v)} /></div>
+          <div className="cell">Updates on my reports <Toggle on={prefs.mine} onChange={v => setPref("mine", v)} /></div>
         </div>
-        <p className="group-foot">Notifications come from the StormWatch NJ iPhone app. In this web demo, live flood alerts show as a banner on the map instead.</p>
+        <p className="group-foot">Flood alerts come from the National Weather Service. "Nearby" means an impassable hazard or downed wires within your search radius. Report updates tell you when a crew is on the way, when it's resolved, or when it comes off the map. Notifications arrive while StormWatch is open in a tab or installed as an app.</p>
 
         <div className="group-head">Your area</div>
         <div className="group">
