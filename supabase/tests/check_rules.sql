@@ -101,18 +101,30 @@ begin
 
     -- ---- the three-vote rule -------------------------------------------
     perform set_config('request.jwt.claims', '{}', true);
-    begin perform public.vote_not_there(h); failed := failed + 1; failures := failures || ' | anonymous vote accepted';
+    begin perform public.vote_not_there(h, 40.335, -74.59); failed := failed + 1; failures := failures || ' | anonymous vote accepted';
     exception when sqlstate '42501' then passed := passed + 1; end;
 
     perform set_config('request.jwt.claims', json_build_object('sub', bo)::text, true);
-    begin perform public.vote_not_there(h); failed := failed + 1; failures := failures || ' | reporter voted on own';
+    begin perform public.vote_not_there(h, 40.335, -74.59); failed := failed + 1; failures := failures || ' | reporter voted on own';
     exception when sqlstate 'P0001' then passed := passed + 1; end;
 
     perform set_config('request.jwt.claims', json_build_object('sub', cy)::text, true);
     begin perform public.remove_hazard(h); failed := failed + 1; failures := failures || ' | stranger removed hazard';
     exception when sqlstate '42501' then passed := passed + 1; end;
 
-    r := public.vote_not_there(h); r := public.vote_not_there(h);
+    -- ---- votes count only from within 1 mile ----------------------------
+    begin perform public.vote_not_there(h, 40.40, -74.50); failed := failed + 1; failures := failures || ' | vote from 6 miles away accepted';
+    exception when sqlstate 'P0001' then passed := passed + 1; end;
+    begin perform public.vote_not_there(h, null, null); failed := failed + 1; failures := failures || ' | vote without location accepted';
+    exception when sqlstate 'P0001' then passed := passed + 1; end;
+    ok := not exists (select 1 from public.hazard_votes where hazard_id = h);
+    if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | refused votes were counted'; end if;
+    -- 1,500 m away: just inside the mile.
+    ok := ((public.vote_not_there(h, 40.3318 + 0.01349, -74.5893)) ->> 'not_there_votes')::int = 1;
+    if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | vote at 0.93 mi refused'; end if;
+    delete from public.hazard_votes where hazard_id = h;
+
+    r := public.vote_not_there(h, 40.335, -74.59); r := public.vote_not_there(h, 40.335, -74.59);
     ok := (r ->> 'not_there_votes')::int = 1 and not (r ->> 'removed')::boolean;
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | double vote counted twice'; end if;
 
@@ -120,18 +132,18 @@ begin
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | list shows my vote'; end if;
 
     perform set_config('request.jwt.claims', json_build_object('sub', di)::text, true);
-    r := public.vote_not_there(h);
+    r := public.vote_not_there(h, 40.335, -74.59);
     ok := (r ->> 'not_there_votes')::int = 2 and not (r ->> 'removed')::boolean and exists (select 1 from public.hazards where id = h);
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | removed after only 2 votes'; end if;
 
     perform set_config('request.jwt.claims', json_build_object('sub', ed)::text, true);
-    r := public.vote_not_there(h);
+    r := public.vote_not_there(h, 40.335, -74.59);
     ok := (r ->> 'removed')::boolean and not exists (select 1 from public.hazards where id = h)
           and not exists (select 1 from public.hazard_votes where hazard_id = h)
           and (select reason = 'community' from public.removed_hazards where id = h);
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | third vote did not remove + audit'; end if;
 
-    begin perform public.vote_not_there(h); failed := failed + 1; failures := failures || ' | vote on removed hazard';
+    begin perform public.vote_not_there(h, 40.335, -74.59); failed := failed + 1; failures := failures || ' | vote on removed hazard';
     exception when sqlstate 'P0002' then passed := passed + 1; end;
 
     -- ---- reporter and township removal ---------------------------------
@@ -156,13 +168,30 @@ begin
     ok := (select reason = 'township' from public.removed_hazards where id = h3);
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | township removal'; end if;
 
+    -- ---- expiry after 3 days without activity ----------------------------
+    perform set_config('request.jwt.claims', json_build_object('sub', bo)::text, true);
+    h2 := ((public.report_hazard('OTHER', 'LOW', 'CLEAR_TO_PASS', false, 'Old debris', 40.36, -74.61)) ->> 'id')::uuid;
+    h3 := ((public.report_hazard('OTHER', 'LOW', 'CLEAR_TO_PASS', false, 'New debris', 40.38, -74.63)) ->> 'id')::uuid;
+    update public.hazards set created_at = now() - interval '5 days', updated_at = now() - interval '73 hours' where id = h2;
+    update public.hazards set created_at = now() - interval '5 days', updated_at = now() - interval '71 hours' where id = h3;
+    ok := not exists (select 1 from public.list_hazards() where id = h2) and exists (select 1 from public.list_hazards() where id = h3);
+    if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | list hides expired, keeps recent activity'; end if;
+    n := public.expire_hazards();
+    ok := n >= 1 and not exists (select 1 from public.hazards where id = h2) and exists (select 1 from public.hazards where id = h3)
+          and (select reason = 'expired' from public.removed_hazards where id = h2);
+    if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | expire_hazards archives only stale hazards'; end if;
+    ok := exists (select 1 from cron.job where jobname = 'expire-hazards' and command like '%expire_hazards%');
+    if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | expiry job scheduled'; end if;
+
     -- ---- who may call what ---------------------------------------------
     ok := not has_function_privilege('anon', 'public.list_hazards()', 'execute')
-      and not has_function_privilege('anon', 'public.vote_not_there(uuid)', 'execute')
+      and not has_function_privilege('anon', 'public.vote_not_there(uuid, double precision, double precision)', 'execute')
       and not has_function_privilege('anon', 'public.remove_hazard(uuid)', 'execute')
       and not has_function_privilege('authenticated', 'public.archive_and_delete_hazard(uuid, text, uuid)', 'execute')
       and not has_function_privilege('authenticated', 'public.sync_profile()', 'execute')
-      and has_function_privilege('authenticated', 'public.vote_not_there(uuid)', 'execute')
+      and has_function_privilege('authenticated', 'public.vote_not_there(uuid, double precision, double precision)', 'execute')
+      and not has_function_privilege('authenticated', 'public.expire_hazards()', 'execute')
+      and not has_function_privilege('anon', 'public.expire_hazards()', 'execute')
       and has_function_privilege('anon', 'public.township_for_email(text)', 'execute');
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | function grants'; end if;
 

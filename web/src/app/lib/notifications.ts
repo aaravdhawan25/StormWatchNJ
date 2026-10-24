@@ -68,7 +68,7 @@ export function processHazards(shared: Hazard[], accountId: string, here: { lati
       if (status === "RESOLVED") send(`mine-${id}-resolved`, "Your report was resolved", "Public works marked the hazard you reported as cleared.", "nearby");
     }
     for (const id of Object.keys(state.mine)) {
-      if (!ids.includes(id)) send(`mine-${id}-removed`, "Your report came off the map", "Neighbors or your township marked the hazard you reported as gone.", "nearby");
+      if (!ids.includes(id)) send(`mine-${id}-removed`, "Your report came off the map", "Neighbors or your township marked it as gone, or it expired after 3 days without an update.", "nearby");
     }
   }
   save({ ...state, known: ids, mine });

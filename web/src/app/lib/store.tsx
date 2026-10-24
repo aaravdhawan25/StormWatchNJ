@@ -29,6 +29,8 @@ interface Store {
   confirmHazard: (h: Hazard) => void;
 
   location: { latitude: number; longitude: number };
+  /** The browser's actual position, inside New Jersey or not. Null until a real fix. */
+  realLocation: { latitude: number; longitude: number } | null;
   locationMode: LocationMode;
   locationText: string;
 
@@ -93,6 +95,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const [location, setLocation] = useState(DEMO_CENTER);
   const [locationMode, setLocationMode] = useState<LocationMode>("waiting");
+  const [realLocation, setRealLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const [stations, setStations] = useState<Station[]>(STATIONS);
   const [gaugesUpdated, setGaugesUpdated] = useState<Date>();
@@ -133,6 +136,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     navigator.geolocation.getCurrentPosition(
       pos => {
         const p = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+        setRealLocation(p);
         if (inNJ(p)) { setLocation(p); setLocationMode("live"); } else setLocationMode("outside");
       },
       () => setLocationMode("denied"),
@@ -219,8 +223,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return h;
   };
 
+  // Votes count only from within 1 mile, so take a fresh, real fix — never the
+  // demo-area stand-in the map uses when location is off.
   const voteNotThere = async (h: Hazard) => {
-    const { data, error } = await supabase.rpc("vote_not_there", { p_hazard: h.id });
+    const here = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error("This browser can't share your location, which voting needs."));
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        () => reject(new Error("Turn on location to vote. You need to be within 1 mile of the hazard.")),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+    });
+    setRealLocation(here);
+    const { data, error } = await supabase.rpc("vote_not_there", { p_hazard: h.id, p_latitude: here.latitude, p_longitude: here.longitude });
     if (error) throw new Error(error.message);
     await refreshHazards();
     return (data as { removed: boolean }).removed;
@@ -289,7 +303,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value: Store = {
     account, authReady, session, enterGuest, signOut,
     hazards, nearby, refreshHazards, report, voteNotThere, remove, setStatus, confirmHazard,
-    location, locationMode, locationText, settings, updateSettings,
+    location, realLocation, locationMode, locationText, settings, updateSettings,
     stations, gaugesUpdated, gaugesError, refreshGauges, liveAlerts,
     simulating, setSimulating, resetDemo,
   };

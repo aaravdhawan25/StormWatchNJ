@@ -107,7 +107,7 @@ Everything that defines it is in `supabase/`:
 | Piece | Where | What it does |
 | --- | --- | --- |
 | Tables | `migrations/0001_schema.sql` | Hazards (PostGIS), votes, profiles, township domains, removal audit, dispatch towns |
-| Rules | `migrations/0002_rules.sql` | Reporting, the three-vote rule, removal, crew status, township roles |
+| Rules | `migrations/0002_rules.sql`, `0005_expiry_and_vote_distance.sql` | Reporting, the three-vote rule (voters within 1 mile), 3-day expiry, removal, crew status, township roles |
 | Open311 | `functions/georeport` | GeoReport v2: services, service definitions, GET and POST requests |
 | GIS feed | `functions/hazard-feed` | GeoJSON layer — add by URL in ArcGIS Online or QGIS |
 | AI triage | `functions/analyze-image` | Photo analysis by OpenAI; key held in Supabase Vault |
@@ -132,7 +132,7 @@ GPS, a Google Maps pin and a plain note that it is an unverified resident report
 Email needs the `RESEND_API_KEY` and `DISPATCH_FROM_EMAIL` secrets.
 
 **Checks.** `supabase/tests/check_rules.sql` exercises the rules inside a
-transaction that rolls back (33 checks). `supabase/tests/check_live.py` exercises the
+transaction that rolls back (40 checks). `supabase/tests/check_live.py` exercises the
 deployed API over the network (46 checks).
 
 Not implemented: XML responses, placing a report from `address_string` alone (no
@@ -203,16 +203,27 @@ until one succeeds. Accounts are handled by Supabase Auth. Once signed in, the
 session is kept in the Keychain and the app opens straight to the map, including
 with no signal.
 
-A hazard comes off the map — for everyone — in three ways:
+A hazard comes off the map — for everyone — in four ways:
 
 | Who | How |
 | --- | --- |
 | The person who reported it | **Remove for everyone** on the report |
-| Three different people | Each taps **It's not there anymore**; the third vote removes it |
+| Three different people within 1 mile | Each taps **It's not there anymore**; the third vote removes it |
 | A township account | **Remove for everyone**, and can set crew status |
+| Time | It expires 3 days after its last update (posted, confirmed by a second report, or a crew status change) |
 
 Voting needs an account so that "three people" means three people: one vote per
-account, and the reporter cannot vote on their own report. A removed hazard is
+account, and the reporter cannot vote on their own report. A vote counts only from
+within 1 mile of the hazard, so the people saying it's gone are near enough to have
+seen the spot: the app sends the phone's real position with the vote (never the demo
+area it shows when location is off), and the server checks the distance. A
+determined person could fake their phone's location; the rule stops casual votes
+from across the state, not a deliberate spoofer.
+
+Expiry runs on the server every 15 minutes (a `pg_cron` job), so stale hazards
+disappear even if nobody opens the app, and the app's list hides them in between.
+
+A removed hazard is
 deleted from the live table and disappears from the app, the Open311 endpoint and
 the GeoJSON feed; a one-line audit record (what, where, when, why) is kept, because
 three accounts being able to erase a hazard without trace would invite abuse.

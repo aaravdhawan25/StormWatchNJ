@@ -240,13 +240,14 @@ struct HazardDetailView: View {
             } else {
                 Button {
                     act {
-                        if try await HazardSync.voteNotThere(current, store: store, account: account) { dismiss() }
+                        if try await HazardSync.voteNotThere(current, from: location.rawCoordinate,
+                                                             store: store, account: account) { dismiss() }
                     }
                 } label: {
                     Label(current.iVotedNotThere == true ? "You said it's gone" : "It's not there anymore",
                           systemImage: current.iVotedNotThere == true ? "checkmark.circle.fill" : "eye.slash.fill")
                 }
-                .disabled(isActing || current.iVotedNotThere == true)
+                .disabled(isActing || current.iVotedNotThere == true || voteDistanceMiles.map { $0 > Self.voteRadiusMiles } == true)
 
                 LabeledContent("Said gone") {
                     Text("\(votes) of \(Self.votesToRemove)")
@@ -264,13 +265,24 @@ struct HazardDetailView: View {
             } else if isTownship {
                 Text("As township staff you can take this down once it is cleared. It comes off the map for everyone.")
             } else {
-                Text("When \(Self.votesToRemove) different people say a hazard is gone, it comes off the map for everyone.")
+                if current.iVotedNotThere != true, let miles = voteDistanceMiles, miles > Self.voteRadiusMiles {
+                    Text("You're \(miles, specifier: "%.1f") miles away. Votes count only from within 1 mile, so the people saying it's gone have seen the spot. ") + Text(Self.expiryNote)
+                } else {
+                    Text("When \(Self.votesToRemove) different people within 1 mile say a hazard is gone, it comes off the map for everyone. ") + Text(Self.expiryNote)
+                }
             }
         }
     }
 
-    /// Mirrors the server's threshold, which is what actually decides removal.
+    /// Mirror the server's rules, which are what actually decide removal.
     private static let votesToRemove = 3
+    private static let voteRadiusMiles = 1.0
+    private static let expiryNote = "Hazards also come off the map on their own 3 days after their last update."
+
+    /// How far the device really is from the hazard; nil without a real fix.
+    private var voteDistanceMiles: Double? {
+        location.rawCoordinate.map { store.distanceMiles(to: current, from: $0) }
+    }
 
     private func act(thenDismiss: Bool = false, _ action: @escaping () async throws -> Void) {
         isActing = true

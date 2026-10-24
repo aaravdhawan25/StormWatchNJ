@@ -8,6 +8,8 @@ import type { Hazard, ReportStatus } from "../lib/models";
 import { REPORT_STATUSES, hazardGradient, hazardLabel, isLifeSafetyRisk, milesBetween, relativeTime, roadLabel, severityColor, statusLabel } from "../lib/models";
 import { useStore } from "../lib/store";
 
+const EXPIRY_NOTE = "Hazards also come off the map on their own 3 days after their last update.";
+
 export function nextdoorURL(h: Hazard) {
   const lines = [`⚠️ ${hazardLabel[h.reportType]} — ${h.severity}`, "", h.details, "", `Road status: ${roadLabel[h.roadStatus]}`, `Area: ${h.municipality}, NJ`];
   if (h.utilityLinesInvolved) lines.push("", "⚡️ Utility lines are involved. Treat any downed wire as energized — stay well back and call 911 and your utility.");
@@ -26,6 +28,9 @@ export function HazardDetail({ hazardId, pushed = false }: { hazardId: string; p
   const township = store.account?.role === "township";
   const guest = store.account?.guest;
   const canRemoveShared = h.isMine || township;
+  // Mirrors the server's 1-mile voting rule; the server makes the real decision.
+  const voteMiles = store.realLocation ? milesBetween(store.realLocation, h) : null;
+  const tooFar = voteMiles != null && voteMiles > 1;
   const act = (fn: () => Promise<unknown>, after?: () => void) => {
     setBusy(true);
     fn().then(() => after?.()).catch(e => nav.dialog({ title: "That didn't work", message: (e as Error).message, actions: [{ label: "OK" }] }))
@@ -123,7 +128,7 @@ export function HazardDetail({ hazardId, pushed = false }: { hazardId: string; p
               <div className="cell muted small">Create an account to vote that a hazard is gone.</div>
             ) : (
               <>
-                <button className="cell link" disabled={busy || h.iVotedNotThere}
+                <button className="cell link" disabled={busy || h.iVotedNotThere || tooFar}
                         onClick={() => act(() => store.voteNotThere(h).then(removed => { if (removed) close(); }))}>
                   {h.iVotedNotThere ? <CircleCheck size={18} /> : <EyeOff size={18} />}
                   <span style={{ color: h.iVotedNotThere ? "var(--text)" : undefined }}>{h.iVotedNotThere ? "You said it's gone" : "It's not there anymore"}</span>
@@ -136,7 +141,8 @@ export function HazardDetail({ hazardId, pushed = false }: { hazardId: string; p
             {!h.shared ? "This report only exists on this device."
               : h.isMine ? "You reported this, so you can take it down. It comes off the map for everyone."
               : township ? "As township staff you can take this down once it is cleared. It comes off the map for everyone."
-              : "When 3 different people say a hazard is gone, it comes off the map for everyone."}
+              : tooFar && !h.iVotedNotThere ? `You're ${voteMiles!.toFixed(1)} miles away. Votes count only from within 1 mile, so the people saying it's gone have seen the spot. ${EXPIRY_NOTE}`
+              : `When 3 different people within 1 mile say a hazard is gone, it comes off the map for everyone. ${EXPIRY_NOTE}`}
           </div>
         </div>
       </div>

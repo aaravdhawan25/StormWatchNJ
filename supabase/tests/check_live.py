@@ -91,17 +91,22 @@ check("GeoJSON feed public", s == 200 and "geo+json" in ct and d["type"] == "Fea
 f = d["features"][0]; check("lon-first, 2 confirmations", f["geometry"]["coordinates"] == [-74.5893, 40.3318] and f["properties"]["confirmations"] == 2, f)
 blob = json.dumps(d); check("no reporter data in feed", "someone@example.com" not in blob and "5551234567" not in blob and "owner" not in blob and REPORTER.lower() not in blob)
 
+# Voters must be within 1 mile of the hazard (at 40.3318, -74.5893).
+NEAR = {"p_latitude": 40.335, "p_longitude": -74.59}
+FAR = {"p_latitude": 40.40, "p_longitude": -74.50}
+
 print("-- app calls")
 s, d, _ = call("POST", "/rest/v1/rpc/list_hazards", token=rep, body={}); mine = [x for x in d if x["id"] == hid][0]
 check("reporter sees is_mine, no owner field", mine["is_mine"] and "owner_id" not in mine, mine)
 s, d, _ = call("POST", "/rest/v1/rpc/list_hazards", token=vot, body={}); check("voter does not see is_mine", not [x for x in d if x["id"] == hid][0]["is_mine"])
-s, d, _ = call("POST", "/rest/v1/rpc/vote_not_there", token=rep, body={"p_hazard": hid}); check("reporter cannot vote own", s == 400 and "remove it" in d["message"], (s, d))
-s, d, _ = call("POST", "/rest/v1/rpc/vote_not_there", token=vot, body={"p_hazard": hid}); check("vote counts 1 of 3", s == 200 and d == {"removed": False, "not_there_votes": 1, "not_there_threshold": 3}, (s, d))
+s, d, _ = call("POST", "/rest/v1/rpc/vote_not_there", token=rep, body={"p_hazard": hid, **NEAR}); check("reporter cannot vote own", s == 400 and "remove it" in d["message"], (s, d))
+s, d, _ = call("POST", "/rest/v1/rpc/vote_not_there", token=vot, body={"p_hazard": hid, **FAR}); check("vote from 6 miles away refused", s == 400 and "within 1 mile" in d["message"], (s, d))
+s, d, _ = call("POST", "/rest/v1/rpc/vote_not_there", token=vot, body={"p_hazard": hid, **NEAR}); check("vote counts 1 of 3", s == 200 and d == {"removed": False, "not_there_votes": 1, "not_there_threshold": 3}, (s, d))
 s, d, _ = call("POST", "/rest/v1/rpc/remove_hazard", token=vot, body={"p_hazard": hid}); check("voter cannot remove", s in (401, 403) and "Only the person" in d["message"], (s, d))
 s, d, _ = call("POST", "/rest/v1/rpc/set_hazard_status", token=vot, body={"p_hazard": hid, "p_status": "RESOLVED"}); check("resident cannot set status", s in (401, 403), (s, d))
 s, d, _ = call("POST", "/rest/v1/rpc/remove_hazard", token=rep, body={"p_hazard": hid}); check("reporter removes own", s == 200 and d == {"removed": True}, (s, d))
 s, d, _ = call("GET", G + f"/requests/{hid}.json", key=False); check("gone from Open311", s == 404, (s, d))
-s, d, _ = call("POST", "/rest/v1/rpc/vote_not_there", token=vot, body={"p_hazard": hid}); check("vote on removed hazard says so", s >= 400 and "no longer" in d["message"], (s, d))
+s, d, _ = call("POST", "/rest/v1/rpc/vote_not_there", token=vot, body={"p_hazard": hid, **NEAR}); check("vote on removed hazard says so", s >= 400 and "no longer" in d["message"], (s, d))
 
 print("-- analyze-image")
 s, d, _ = call("POST", "/functions/v1/analyze-image", key=False); check("no token refused", s == 401, (s, d))

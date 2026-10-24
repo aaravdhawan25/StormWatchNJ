@@ -138,7 +138,7 @@ final class NotificationManager: NSObject, ObservableObject {
             }
             for id in previousMine.keys where !currentIDs.contains(id) {
                 send(id: "mine-\(id)-removed", title: "Your report came off the map",
-                     body: "Neighbors or your township marked the hazard you reported as gone.", tab: 1)
+                     body: "Neighbors or your township marked it as gone, or it expired after 3 days without an update.", tab: 1)
             }
         }
 

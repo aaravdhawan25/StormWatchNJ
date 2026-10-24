@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 
 /// A hazard as the shared database describes it.
@@ -85,9 +86,17 @@ enum HazardSync {
     private static let signedOut = APIError.server(status: 401, detail: "Sign in to do that.", code: nil)
 
     /// Records "it's not there". Returns true if that vote removed the hazard.
-    static func voteNotThere(_ report: HazardReport, store: HazardStore, account: AccountStore) async throws -> Bool {
+    /// `from` is the device's real position; the server only counts votes made
+    /// within 1 mile of the hazard.
+    static func voteNotThere(_ report: HazardReport, from position: CLLocationCoordinate2D?,
+                             store: HazardStore, account: AccountStore) async throws -> Bool {
         guard let api = await account.authorizedAPI(), let ticket = report.relayTicketID else { throw signedOut }
-        let result: VoteResult = try await api.send("POST", "rest/v1/rpc/vote_not_there", body: ["p_hazard": ticket])
+        guard let position else {
+            throw APIError.server(status: 400, detail: "Turn on location to vote. You need to be within 1 mile of the hazard.", code: "P0001")
+        }
+        let result: VoteResult = try await api.send("POST", "rest/v1/rpc/vote_not_there", body: [
+            "p_hazard": ticket, "p_latitude": position.latitude, "p_longitude": position.longitude
+        ])
         await pull(into: store, account: account)
         return result.removed
     }
