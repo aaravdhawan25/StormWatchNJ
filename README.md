@@ -244,13 +244,24 @@ whenever the account changes. The domain list lives in the `township_domains` ta
 it was supplied for this project and has not been checked town by town — review it
 before real use.
 
-**Confirmation email.** Supabase sends it. Two things to set in the dashboard:
+**Confirmation email.** Supabase sends it, and its link goes back to wherever the
+person signed up: the iPhone app asks for `stormwatchnj://auth-callback` (the app
+opens and signs in), the website asks for its own address. Supabase only honours
+those if they are allowed, so set in *Authentication → URL Configuration*:
 
-- *Authentication → Emails → Confirm signup*: add `{{ .Token }}` to the template so
-  the email shows a code to type into the app. Without that, the email only has a
-  link — which also works: tap it, come back, and choose "I tapped the link".
-- Supabase's built-in mailer is limited to a few emails an hour and is meant for
-  testing. For real use, add your own SMTP provider under *Authentication → SMTP*.
+- **Site URL**: the public website, `https://storm-watch-nj-i9tv.vercel.app` (not
+  the `…-projects.vercel.app` address, which is behind Vercel's login).
+- **Redirect URLs**: `stormwatchnj://**`, `https://storm-watch-nj-i9tv.vercel.app/**`
+  and `http://localhost:5174/**`.
+
+If a link still lands on the website, the site shows "Email confirmed" with an
+**Open the StormWatch NJ app** button, and the app signs in by itself when the
+person comes back to it. Adding `{{ .Token }}` to *Emails → Confirm signup* also
+puts a code in the email, which both apps accept.
+
+Supabase's built-in mailer sends only about 2 emails an hour for the whole project
+and is meant for testing. For real use, add your own SMTP provider (Resend, Postmark,
+SendGrid…) under *Authentication → Emails → SMTP Settings*.
 
 Keep **Confirm email** switched on. Township security depends on it.
 

@@ -128,7 +128,7 @@ export function HazardDetail({ hazardId, pushed = false }: { hazardId: string; p
               <div className="cell muted small">Create an account to vote that a hazard is gone.</div>
             ) : (
               <>
-                <button className="cell link" disabled={busy || h.iVotedNotThere || tooFar}
+                <button className="cell link" disabled={busy || h.iVotedNotThere}
                         onClick={() => act(() => store.voteNotThere(h).then(removed => { if (removed) close(); }))}>
                   {h.iVotedNotThere ? <CircleCheck size={18} /> : <EyeOff size={18} />}
                   <span style={{ color: h.iVotedNotThere ? "var(--text)" : undefined }}>{h.iVotedNotThere ? "You said it's gone" : "It's not there anymore"}</span>

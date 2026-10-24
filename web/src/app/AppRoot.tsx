@@ -9,6 +9,8 @@ import { RiversScreen } from "./screens/Rivers";
 import { SettingsScreen } from "./screens/Settings";
 import { DpwScreen } from "./screens/Dpw";
 import { WelcomeScreen } from "./screens/Welcome";
+import { EmailLinkScreen } from "./screens/EmailLink";
+import { emailLink } from "./lib/config";
 import "./app.css";
 
 type Tab = "map" | "nearby" | "dpw" | "report" | "alerts" | "settings";
@@ -17,6 +19,7 @@ type Tab = "map" | "nearby" | "dpw" | "report" | "alerts" | "settings";
 export function AppRoot() {
   const { account, authReady } = useStore();
   const [tab, setTab] = useState<Tab>("map");
+  const [link, setLink] = useState(emailLink);
   const township = account?.role === "township";
 
   // Township staff get the DPW console in place of Nearby, as on iPhone.
@@ -40,6 +43,7 @@ export function AppRoot() {
   }, [township]);
 
   if (!authReady) return <div className="sw" />;
+  if (link) return <div className="sw"><EmailLinkScreen {...link} signedIn={!!account && !account.guest} onDone={() => setLink(null)} /></div>;
   if (!account) return <div className="sw"><WelcomeScreen /></div>;
 
   const tabs: [Tab, string, React.ReactNode][] = [

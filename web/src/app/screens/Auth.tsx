@@ -39,14 +39,15 @@ export function AuthScreen({ kind: initialKind, creating: initialCreating, onBac
     const address = email.trim().toLowerCase();
     if (kind === "township") await requireTownship(address);
     if (creating) {
-      const { data, error } = await supabase.auth.signUp({ email: address, password, options: { data: { account_type: kind } } });
+      const { data, error } = await supabase.auth.signUp({ email: address, password,
+        options: { data: { account_type: kind }, emailRedirectTo: window.location.origin } });
       if (error) throw error;
       if (!data.session) setPending(address);
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email: address, password });
       if (error?.code === "email_not_confirmed") {
         setPending(address);
-        await supabase.auth.resend({ type: "signup", email: address });
+        await supabase.auth.resend({ type: "signup", email: address, options: { emailRedirectTo: window.location.origin } });
         return;
       }
       if (error) throw error;
@@ -65,14 +66,35 @@ export function AuthScreen({ kind: initialKind, creating: initialCreating, onBac
     if (data.user?.user_metadata?.account_type !== "township") await supabase.auth.updateUser({ data: { account_type: "township" } });
   };
 
+  // After the person taps the link (often in another tab or on their phone),
+  // their password signs them in. Checked by the button and whenever they
+  // come back to this tab.
+  const checkConfirmed = async (quiet: boolean) => {
+    if (!pending || !password) return;
+    const { error } = await supabase.auth.signInWithPassword({ email: pending, password });
+    if (!error) {
+      if (kind === "township") await supabase.auth.updateUser({ data: { account_type: "township" } });
+      return;
+    }
+    if (!quiet) throw error.code === "email_not_confirmed"
+      ? new Error("Not confirmed yet. Tap the link in the email from Supabase, then try again.") : error;
+  };
+  useEffect(() => {
+    if (!pending) return;
+    const onBack = () => { if (document.visibilityState === "visible") checkConfirmed(true).catch(() => {}); };
+    document.addEventListener("visibilitychange", onBack);
+    return () => document.removeEventListener("visibilitychange", onBack);
+  }, [pending, password]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [showCode, setShowCode] = useState(false);
+
   const verify = () => run(async () => {
     const { error } = await supabase.auth.verifyOtp({ type: "signup", email: pending!, token: code.trim() });
     if (error) throw error;
   });
 
   const heading = pending ? "Check your email" : kind === "township" ? (creating ? "Township account" : "Township sign-in") : creating ? "Create your account" : "Welcome back";
-  const sub = pending ? `We sent an email to ${pending}. Enter the code from it, or tap the link in it and come back.`
-    : kind === "township" ? "For municipal staff. Use your official township email — you'll confirm it with a code sent there, so only someone who receives mail at that address can sign in."
+  const sub = pending ? `We sent an email to ${pending}. Tap the link in it — you'll be signed in.`
+    : kind === "township" ? "For municipal staff. Use your official township email — you'll confirm it from an email sent there, so only someone who receives mail at that address can sign in."
     : creating ? "One account lets you report hazards, remove your own, and vote when one is gone." : "Sign in to see what's happening on your streets.";
 
   const field = (icon: React.ReactNode, input: React.ReactNode) => (
@@ -103,13 +125,14 @@ export function AuthScreen({ kind: initialKind, creating: initialCreating, onBac
 
         <div className="stack" style={{ gap: 14, padding: 18, borderRadius: 24, background: "rgba(30,40,60,.55)", border: "1px solid rgba(255,255,255,.18)", backdropFilter: "blur(20px)" }}>
           {pending ? <>
-            {field(<Hash size={16} />, <input style={{ ...inputStyle, fontSize: 20, fontWeight: 600 }} placeholder="Code from the email" inputMode="numeric"
-                                             autoComplete="one-time-code" value={code} onChange={e => setCode(e.target.value)} autoFocus />)}
-            {primary("Verify", code.length >= 6, verify)}
-            <button style={{ fontSize: 13, fontWeight: 600, opacity: 0.85 }} disabled={busy || !password}
-                    onClick={() => { setCreating(false); setPending(null); submit(); }}>I tapped the link in the email</button>
+            {primary("I've confirmed my email", !!password, () => run(() => checkConfirmed(false)))}
+            {showCode ? <>
+              {field(<Hash size={16} />, <input style={{ ...inputStyle, fontSize: 20, fontWeight: 600 }} placeholder="Code from the email" inputMode="numeric"
+                                               autoComplete="one-time-code" value={code} onChange={e => setCode(e.target.value)} autoFocus />)}
+              {primary("Verify code", code.length >= 6, verify)}
+            </> : <button style={{ fontSize: 13, fontWeight: 600, opacity: 0.85 }} onClick={() => setShowCode(true)}>My email has a code instead</button>}
             <div className="row" style={{ fontSize: 13, fontWeight: 600, opacity: 0.85 }}>
-              <button onClick={() => run(async () => { await supabase.auth.resend({ type: "signup", email: pending }); setMessage("A new email is on its way. You can ask once a minute."); })}>Send a new email</button>
+              <button onClick={() => run(async () => { await supabase.auth.resend({ type: "signup", email: pending, options: { emailRedirectTo: window.location.origin } }); setMessage("A new email is on its way. You can ask once a minute."); })}>Send a new email</button>
               <span className="spacer" />
               <button onClick={() => { setPending(null); setCode(""); setMessage(null); }}>Use a different email</button>
             </div>
@@ -162,6 +185,7 @@ function friendly(message: string): string {
   if (/invalid login credentials/i.test(message)) return "Incorrect email or password.";
   if (/already registered|already exists/i.test(message)) return "An account with that email already exists. Sign in instead.";
   if (/expired|invalid.*otp|token has expired/i.test(message)) return "That code is wrong or has expired. Request a new one.";
+  if (/email rate limit/i.test(message)) return "Too many emails have been sent in the last hour, so a new one can't go out yet. Try again later, or use the link in an email you already have.";
   if (/rate limit|too many/i.test(message)) return "Too many attempts. Wait a minute and try again.";
   if (/recognised township/i.test(message)) return message;
   if (/database error saving new user/i.test(message)) return "That email is not on a recognised township domain.";

@@ -9,6 +9,7 @@ struct StormWatchNJApp: App {
     @StateObject private var account = AppServices.shared.account
     @StateObject private var floodAlerts = AppServices.shared.floodAlerts
     @StateObject private var notifications = AppServices.shared.notifications
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         BackgroundRefresh.register()
@@ -27,6 +28,12 @@ struct StormWatchNJApp: App {
             }
             .animation(.easeInOut(duration: 0.35), value: account.isSignedIn)
             .task { await account.restore() }
+            // The confirmation email, or the website's "Open the app" button.
+            .onOpenURL { url in Task { await account.handle(url: url) } }
+            // Back from tapping the link in Mail: sign straight in if it's confirmed.
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await account.checkPendingConfirmation() } }
+            }
                 .environmentObject(store)
                 .environmentObject(usgs)
                 .environmentObject(location)

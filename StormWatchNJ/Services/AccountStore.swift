@@ -37,7 +37,23 @@ struct TownshipDomain: Decodable, Identifiable {
 final class AccountStore: ObservableObject {
     @Published private(set) var account: Account?
     /// Set while an emailed confirmation is outstanding for this address.
-    @Published var pendingEmail: String?
+    @Published var pendingEmail: String? {
+        didSet { if pendingEmail == nil { pendingPassword = nil } }
+    }
+    /// A one-line message for the sign-in screen, e.g. after a confirmation link.
+    @Published var notice: String?
+
+    /// Kept in memory only, so that coming back from the confirmation link signs
+    /// the person straight in. Never written to disk.
+    private var pendingPassword: String?
+    private var pendingKind: AccountKind = .resident
+
+    /// Where the confirmation link should send people: straight back into the
+    /// app. Supabase uses it only if it is in the project's Redirect URLs list;
+    /// otherwise the link goes to the Site URL (the website), which offers a
+    /// button back to the app.
+    static let callbackURL = "stormwatchnj://auth-callback"
+    private static var redirectQuery: [URLQueryItem] { [URLQueryItem(name: "redirect_to", value: callbackURL)] }
 
     private var session: StoredSession?
     private static let sessionKey = "session"
@@ -98,7 +114,7 @@ final class AccountStore: ObservableObject {
     func signUp(email: String, password: String, kind: AccountKind) async throws {
         let email = Self.normalise(email)
         if kind == .township { try await requireTownshipDomain(email) }
-        let reply: SignUpResponse = try await BackendAPI().send("POST", "auth/v1/signup", body: [
+        let reply: SignUpResponse = try await BackendAPI().send("POST", "auth/v1/signup", query: Self.redirectQuery, body: [
             "email": email, "password": password, "data": ["account_type": kind.rawValue]
         ])
         if let token = reply.access_token, let refresh = reply.refresh_token, let user = reply.user {
@@ -108,6 +124,8 @@ final class AccountStore: ObservableObject {
             await loadProfile()
         } else {
             pendingEmail = email
+            pendingPassword = password
+            pendingKind = kind
         }
     }
 
@@ -119,8 +137,10 @@ final class AccountStore: ObservableObject {
                 body: ["email": email, "password": password])
             try await adopt(reply, kind: kind)
         } catch let error as APIError where error.code == "email_not_confirmed" {
-            // Right password, unconfirmed address: send a fresh email and ask for the code.
+            // Right password, unconfirmed address: send a fresh email.
             pendingEmail = email
+            pendingPassword = password
+            pendingKind = kind
             try? await resendCode()
         }
     }
@@ -130,13 +150,65 @@ final class AccountStore: ObservableObject {
         let reply: SessionResponse = try await BackendAPI().send("POST", "auth/v1/verify", body: [
             "type": "signup", "email": pendingEmail, "token": code.trimmingCharacters(in: .whitespaces)
         ])
-        try await adopt(reply, kind: .resident)
+        try await adopt(reply, kind: pendingKind)
     }
 
     func resendCode() async throws {
         guard let pendingEmail else { return }
-        let _: BackendAPI.Empty = try await BackendAPI().send("POST", "auth/v1/resend",
+        let _: BackendAPI.Empty = try await BackendAPI().send("POST", "auth/v1/resend", query: Self.redirectQuery,
                                                               body: ["type": "signup", "email": pendingEmail])
+    }
+
+    /// If a confirmation is outstanding and the address has since been confirmed
+    /// (the person tapped the link), signs in with the password they just typed.
+    /// Quiet when it isn't confirmed yet. Returns true if it signed in.
+    @discardableResult
+    func checkPendingConfirmation() async -> Bool {
+        guard let email = pendingEmail, let password = pendingPassword, account == nil else { return false }
+        guard let reply: SessionResponse = try? await BackendAPI().send(
+            "POST", "auth/v1/token", query: [URLQueryItem(name: "grant_type", value: "password")],
+            body: ["email": email, "password": password]) else { return false }
+        do {
+            try await adopt(reply, kind: pendingKind)
+            return true
+        } catch {
+            notice = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Handles stormwatchnj:// links: the confirmation email (when Supabase sends
+    /// it straight here, with a session in the fragment) and the website's
+    /// "Open the app" button (no session; sign in with the pending password).
+    func handle(url: URL) async {
+        guard url.scheme == "stormwatchnj" else { return }
+        var params: [String: String] = [:]
+        for part in [url.fragment, URLComponents(url: url, resolvingAgainstBaseURL: false)?.percentEncodedQuery] {
+            for pair in (part ?? "").split(separator: "&") {
+                let kv = pair.split(separator: "=", maxSplits: 1).map { String($0).removingPercentEncoding ?? String($0) }
+                if kv.count == 2 { params[kv[0]] = kv[1].replacingOccurrences(of: "+", with: " ") }
+            }
+        }
+        if let error = params["error_description"] {
+            notice = error.contains("expired") || error.contains("invalid")
+                ? "That link has expired or was already used. Sign in — if your email still needs confirming, we'll send a new link."
+                : error
+            return
+        }
+        if let access = params["access_token"], let refresh = params["refresh_token"] {
+            do {
+                let user: AuthUser = try await BackendAPI(token: access).send("GET", "auth/v1/user")
+                let expires = Int(params["expires_in"] ?? "") ?? 3600
+                try await adopt(SessionResponse(access_token: access, refresh_token: refresh, expires_in: expires, user: user),
+                                kind: pendingKind)
+            } catch {
+                notice = "Your email is confirmed. Sign in to continue."
+            }
+            return
+        }
+        if account == nil, !(await checkPendingConfirmation()) {
+            notice = "Your email is confirmed. Sign in to continue."
+        }
     }
 
     func signInWithGoogle(kind: AccountKind) async throws {
@@ -190,6 +262,7 @@ final class AccountStore: ObservableObject {
         }
         store(reply)
         pendingEmail = nil
+        notice = nil
         await loadProfile()
 
         // Someone with a confirmed municipal address who first signed up as a

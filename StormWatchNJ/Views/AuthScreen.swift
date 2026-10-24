@@ -15,6 +15,7 @@ struct AuthScreen: View {
     @State private var message: String?
     @State private var towns: [TownshipDomain] = []
     @State private var showTowns = false
+    @State private var showCodeEntry = false
     @FocusState private var focus: Field?
 
     private enum Field { case email, password, code }
@@ -43,6 +44,12 @@ struct AuthScreen: View {
                             credentials
                         }
 
+                        if message == nil, let notice = account.notice {
+                            Label(notice, systemImage: "checkmark.seal.fill")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                         if let message {
                             Label(message, systemImage: "exclamationmark.circle.fill")
                                 .font(.footnote.weight(.medium))
@@ -78,10 +85,10 @@ struct AuthScreen: View {
 
     private var subheading: String {
         if let pending = account.pendingEmail {
-            return "We sent an email to \(pending). Enter the code from it, or tap the link in it and come back."
+            return "We sent an email to \(pending). Tap the link in it, then come back here — you'll be signed in."
         }
         if kind == .township {
-            return "For municipal staff. Use your official township email — you'll confirm it with a code sent there, so only someone who receives mail at that address can sign in."
+            return "For municipal staff. Use your official township email — you'll confirm it from an email sent there, so only someone who receives mail at that address can sign in."
         }
         return isCreating
             ? "One account lets you report hazards, remove your own, and vote when one is gone."
@@ -170,26 +177,34 @@ struct AuthScreen: View {
 
     @ViewBuilder
     private func verification(for pending: String) -> some View {
-        field(icon: "number") {
-            TextField("", text: $code, prompt: Text("Code from the email").foregroundColor(.white.opacity(0.45)))
-                .keyboardType(.numberPad)
-                .textContentType(.oneTimeCode)
-                .font(.title3.monospacedDigit().weight(.semibold))
-                .focused($focus, equals: .code)
-        }
-        .onAppear { focus = .code }
-
-        primaryButton("Verify", enabled: code.count >= 6) {
-            run { try await account.verify(code: code) }
+        // The usual way: tap the link, come back, and the app signs in by itself
+        // (see StormWatchNJApp). This button does the same check by hand.
+        primaryButton("I've confirmed my email", enabled: !password.isEmpty) {
+            run {
+                if !(await account.checkPendingConfirmation()) {
+                    message = "Not confirmed yet. Tap the link in the email from Supabase, then try again."
+                }
+            }
         }
 
-        // Confirming by the emailed link works too; then the password signs in.
-        Button("I tapped the link in the email") {
-            run { try await account.signIn(email: pending, password: password, kind: kind) }
+        // Only if the project's email template includes a code ({{ .Token }}).
+        if showCodeEntry {
+            field(icon: "number") {
+                TextField("", text: $code, prompt: Text("Code from the email").foregroundColor(.white.opacity(0.45)))
+                    .keyboardType(.numberPad)
+                    .textContentType(.oneTimeCode)
+                    .font(.title3.monospacedDigit().weight(.semibold))
+                    .focused($focus, equals: .code)
+            }
+            .onAppear { focus = .code }
+            primaryButton("Verify code", enabled: code.count >= 6) {
+                run { try await account.verify(code: code) }
+            }
+        } else {
+            Button("My email has a code instead") { showCodeEntry = true }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.85))
         }
-        .font(.footnote.weight(.semibold))
-        .foregroundStyle(.white.opacity(0.85))
-        .disabled(password.isEmpty || isWorking)
 
         HStack {
             Button("Send a new email") {

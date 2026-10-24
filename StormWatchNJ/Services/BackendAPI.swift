@@ -81,7 +81,9 @@ struct BackendAPI {
         case "email_not_confirmed": friendly = "Check your email to finish setting up your account."
         case "user_already_exists", "email_exists": friendly = "An account with that email already exists. Sign in instead."
         case "otp_expired": friendly = "That code is wrong or has expired. Request a new one."
-        case "over_email_send_rate_limit", "over_request_rate_limit":
+        case "over_email_send_rate_limit":
+            friendly = "Too many emails have been sent in the last hour, so a new one can't go out yet. Try again later, or use the link in an email you already have."
+        case "over_request_rate_limit":
             friendly = "Too many attempts. Wait a minute and try again."
         case "weak_password": friendly = "Choose a stronger password."
         case "email_address_invalid", "validation_failed": friendly = "Enter a valid email address."

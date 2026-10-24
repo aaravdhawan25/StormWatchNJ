@@ -6,6 +6,18 @@ import { createClient } from "@supabase/supabase-js";
 export const SUPABASE_URL = "https://yvmmtuqwjvztvxwpmfwf.supabase.co";
 export const SUPABASE_KEY = "sb_publishable_J48JNj6IRTzpzwkBsgM_MQ_NmERLY1v";
 
+/** What a confirmation link brought with it, read before Supabase consumes and
+ *  clears the address bar. Shown once by the "email confirmed" screen. */
+export const emailLink: { ok: boolean; message?: string } | null = (() => {
+  const h = new URLSearchParams(window.location.hash.slice(1));
+  if (h.get("error_code") || h.get("error")) {
+    history.replaceState(null, "", window.location.pathname);
+    return { ok: false, message: h.get("error_description") ?? undefined };
+  }
+  if (h.get("access_token") && ["signup", "email", "email_change"].includes(h.get("type") ?? "")) return { ok: true };
+  return null;
+})();
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, storageKey: "stormwatch-web-session" },
 });
