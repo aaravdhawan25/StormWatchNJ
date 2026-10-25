@@ -31,6 +31,7 @@ struct SnapTriageScreen: View {
     @State private var showCamera = false
     @State private var showSubmitted = false
     @State private var showCameraDenied = false
+    @State private var showNoCamera = false
     /// Kept after `reset()` so the Nextdoor offer can compose from it.
     @State private var lastSubmitted: HazardReport?
     /// Street address and town for where the photo was taken, looked up once a
@@ -140,6 +141,11 @@ struct SnapTriageScreen: View {
             } message: {
                 Text("StormWatch NJ needs the camera to photograph a hazard. You can still choose an existing photo from your library.")
             }
+            .alert("Camera access not granted", isPresented: $showNoCamera) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(Self.noCameraMessage)
+            }
             .fullScreenCover(isPresented: $showCamera) {
                 CameraPicker { captured in
                     showCamera = false
@@ -194,18 +200,17 @@ struct SnapTriageScreen: View {
             .clipShape(RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous))
             .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
 
-            if CameraPicker.isAvailable {
-                Button {
-                    requestCameraThenPresent()
-                } label: {
-                    Label("Take photo", systemImage: "camera.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.teal)
+            // Always shown; without a camera (the simulator) it explains why not.
+            Button {
+                requestCameraThenPresent()
+            } label: {
+                Label("Take photo", systemImage: "camera.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
             }
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.teal)
 
             PhotosPicker(selection: $photoItem, matching: .images) {
                 Label("Choose from library", systemImage: "photo.on.rectangle.angled")
@@ -439,9 +444,21 @@ struct SnapTriageScreen: View {
 
     // MARK: - Actions
 
+    private static var noCameraMessage: String {
+        #if targetEnvironment(simulator)
+        "The simulator has no camera, so camera access can't be granted here. Choose a photo from your library or try a sample scene instead."
+        #else
+        "This device has no camera available. Choose a photo from your library instead."
+        #endif
+    }
+
     /// Checks camera permission before presenting the picker. Without this a
     /// denied camera shows the resident an opaque black sheet instead of a reason.
     private func requestCameraThenPresent() {
+        guard CameraPicker.isAvailable else {
+            showNoCamera = true
+            return
+        }
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             showCamera = true
