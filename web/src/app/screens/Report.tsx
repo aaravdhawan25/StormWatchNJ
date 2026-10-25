@@ -1,10 +1,11 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { reverseGeocode, type Place } from "../lib/publicData";
 import { Camera, ChevronRight, Images, RotateCcw, Send, Sparkles, BadgeCheck, Wand2, Waves, Leaf, Zap } from "lucide-react";
 import { HazardGlyph, Header, StormBackdrop, Toggle, useNav } from "../components/ui";
 import { LifeSafetyBanner } from "../components/LifeSafety";
 import type { HazardType, RoadStatus, Severity } from "../lib/models";
 import { HAZARD_TYPES, ROAD_STATUSES, SEVERITIES, hazardLabel, isLifeSafetyRisk, roadLabel, severityColor, severityLabel } from "../lib/models";
-import { useStore, townFor } from "../lib/store";
+import { useStore, nearbyTownFor } from "../lib/store";
 import { supabase } from "../lib/config";
 import { analyzeOnDevice, analyzeWithOpenAI, type Analysis } from "../lib/triage";
 import { nextdoorURL } from "./HazardDetail";
@@ -24,7 +25,15 @@ export function ReportScreen() {
   const [wires, setWires] = useState(false);
   const [details, setDetails] = useState("");
   const [posting, setPosting] = useState(false);
-  const town = townFor(store.location);
+  // The real address once a photo is in; the built-in town list only nearby.
+  const [place, setPlace] = useState<Place | null>(null);
+  const town = place?.city ?? nearbyTownFor(store.location) ?? "New Jersey";
+  useEffect(() => {
+    if (!photo) { setPlace(null); return; }
+    let live = true;
+    reverseGeocode(store.location.latitude, store.location.longitude).then(p => { if (live) setPlace(p); });
+    return () => { live = false; };
+  }, [!!photo, store.location.latitude, store.location.longitude]); // eslint-disable-line react-hooks/exhaustive-deps
   const guest = store.account?.guest;
 
   const reset = () => { setPhoto(null); setAnalysis(null); setError(null); setDetails(""); setWires(false); setSeverity("MODERATE"); setRoad("ONE_LANE_OPEN"); setType("STREET_FLOODING"); };
@@ -69,7 +78,7 @@ export function ReportScreen() {
     <div className="screen">
       <Header title="Snap & Triage" subtitle={photo ? "Check the details, then post" : "Photograph a hazard to begin"}
               trailing={photo && <button onClick={reset} aria-label="Start over" style={{ color: "#fff" }}><RotateCcw size={24} /></button>} />
-      {showSafety && <div style={{ marginTop: -10, zIndex: 2 }}><LifeSafetyBanner location={`${town}, NJ`} /></div>}
+      {showSafety && <div style={{ marginTop: -10, zIndex: 2 }}><LifeSafetyBanner location={place?.line ?? `${town}, NJ`} /></div>}
       <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={e => { const f = e.target.files?.[0]; if (f) take(f); e.target.value = ""; }} />
       <input ref={libraryRef} type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (f) take(f); e.target.value = ""; }} />
       <div className="scroll">

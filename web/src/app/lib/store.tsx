@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { DEMO_CENTER, functionURL, inNJ, supabase, SUPABASE_KEY } from "./config";
-import { nearestTown, seedHazards, stormSurgeHazards } from "./demoData";
+import { nearbyTown, nearestTown, seedHazards, stormSurgeHazards } from "./demoData";
 import type { Hazard, ReportStatus } from "./models";
 import { milesBetween } from "./models";
 import { forgetMine, loadPrefs, processAlerts, processHazards, resetNotifications } from "./notifications";
@@ -311,4 +311,5 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 }
 
 export const townFor = nearestTown;
+export const nearbyTownFor = nearbyTown;
 export const alertOf = gaugeAlert;

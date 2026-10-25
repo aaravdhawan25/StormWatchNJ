@@ -33,8 +33,10 @@ struct SnapTriageScreen: View {
     @State private var showCameraDenied = false
     /// Kept after `reset()` so the Nextdoor offer can compose from it.
     @State private var lastSubmitted: HazardReport?
-    /// Street address for the life-safety banner, resolved when it first appears.
+    /// Street address and town for where the photo was taken, looked up once a
+    /// photo is in (for the life-safety banner and the report's town).
     @State private var hazardAddress: String?
+    @State private var placeCity: String?
     @State private var nextdoorFailed = false
 
     private var showsLifeSafetyAlert: Bool {
@@ -42,7 +44,7 @@ struct SnapTriageScreen: View {
     }
 
     private var municipality: String {
-        NJMunicipalities.nearest(to: location.coordinate).name
+        placeCity ?? NJMunicipalities.nearby(location.coordinate) ?? "New Jersey"
     }
 
     /// Debug builds accept `-demoScene floodedRoad|downedTree` so a screenshot
@@ -96,10 +98,12 @@ struct SnapTriageScreen: View {
               }
               .animation(.easeOut(duration: 0.25), value: showsLifeSafetyAlert)
             }
-            .task(id: showsLifeSafetyAlert) {
-                guard showsLifeSafetyAlert, hazardAddress == nil else { return }
-                hazardAddress = await AddressResolver.resolve(latitude: location.coordinate.latitude,
-                                                              longitude: location.coordinate.longitude)?.singleLine
+            .task(id: image != nil) {
+                guard image != nil, hazardAddress == nil else { return }
+                let place = await AddressResolver.resolve(latitude: location.coordinate.latitude,
+                                                          longitude: location.coordinate.longitude)
+                hazardAddress = place?.singleLine
+                placeCity = place?.city
             }
             .navigationBarHidden(true)
             .task {
@@ -517,6 +521,7 @@ struct SnapTriageScreen: View {
         photoItem = nil
         errorMessage = nil
         hazardAddress = nil
+        placeCity = nil
         details = ""
         utilityLines = false
         severity = .moderate

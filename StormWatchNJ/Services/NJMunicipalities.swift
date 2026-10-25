@@ -27,6 +27,16 @@ enum NJMunicipalities {
         ("Squankum", "Monmouth", .init(latitude: 40.1590, longitude: -74.1329))
     ]
 
+    /// The nearest listed town, but only if it is within about 8 miles: the list
+    /// covers central and northern NJ, so further away it would name the wrong town.
+    static func nearby(_ coordinate: CLLocationCoordinate2D) -> String? {
+        let match = nearest(to: coordinate)
+        guard let town = towns.first(where: { $0.name == match.name }) else { return nil }
+        let miles = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            .distance(from: CLLocation(latitude: town.coordinate.latitude, longitude: town.coordinate.longitude)) / 1609.34
+        return miles <= 8 ? town.name : nil
+    }
+
     /// Nearest town by great-circle distance. Always returns something, so callers
     /// never have to handle an empty label.
     static func nearest(to coordinate: CLLocationCoordinate2D) -> (name: String, county: String) {

@@ -53,6 +53,15 @@ const TOWNS: [string, number, number][] = [
 ];
 
 /** Nearest town in a small offline list, as the iPhone app does. */
+/** The nearest town in the list, but only if it is close by (about 8 miles):
+ *  the list covers central NJ, so elsewhere it would name the wrong town. */
+export function nearbyTown(p: { latitude: number; longitude: number }): string | null {
+  const name = nearestTown(p);
+  const t = TOWNS.find(x => x[0] === name)!;
+  const miles = Math.hypot((t[1] - p.latitude) * 69, (t[2] - p.longitude) * 53);
+  return miles <= 8 ? name : null;
+}
+
 export function nearestTown(p: { latitude: number; longitude: number }): string {
   let best = TOWNS[0], bestD = Infinity;
   for (const t of TOWNS) {
