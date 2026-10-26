@@ -1,425 +1,171 @@
 # StormWatch NJ
 
-Hyper-local flash-flood and road-obstruction reporting for New Jersey commuters and
-municipal DPW crews. Built for the Congressional App Challenge.
+**A neighbor-powered storm hazard map for New Jersey.** Snap a photo of a flooded
+road, a fallen tree, a clogged storm drain or a downed power line. AI fills in the
+report, you check it, and it goes on a live map for everyone nearby and to your
+town's public works department.
 
-Residents photograph a hazard, an AI triages the photo and pre-fills the report, the
-resident confirms it in one tap, and the result lands on a live map alongside real
-USGS river-gauge telemetry. Town DPWs export the open queue as GeoJSON or CSV.
+Built for the Congressional App Challenge, as an iPhone app and a matching website
+that share one backend.
+
+<p align="center">
+  <img src="docs/screenshots/snap.png" width="190" alt="Snap a photo">
+  <img src="docs/screenshots/ai-report.png" width="190" alt="AI fills in the report">
+  <img src="docs/screenshots/approve.png" width="190" alt="You check and post">
+  <img src="docs/screenshots/live-map.png" width="190" alt="The hazard on the live map">
+</p>
+
+## How it works
+
+1. **Snap.** Take a photo, or choose one from your library.
+2. **AI creates the report.** An OpenAI vision model reads the photo and fills in
+   the hazard type, how severe it is, whether the road is passable, whether power
+   lines are involved, and a short description for a public works crew.
+3. **You approve.** AI can make mistakes, so every field stays editable and nothing
+   is posted until you tap **Post report**.
+4. **Live map.** The hazard appears on the map for everyone nearby, is filed with
+   the town's public works desk, and can be shared to Nextdoor in one tap.
+
+### When wires are involved
+
+If the photo shows downed wires, or you switch on **Utility lines involved**, a red
+safety banner appears: stay at least 30 feet back, treat every wire as live, and
+call **911** or **PSE&G** with one tap. JCP&L, Atlantic City Electric and Orange &
+Rockland are one tap further. The banner shows the street address to read to the
+dispatcher.
+
+## Staying safe in a storm
+
+<p align="center">
+  <img src="docs/screenshots/flood-watch.png" width="190" alt="Flood Watch">
+  <img src="docs/screenshots/river-gauge.png" width="190" alt="A river gauge">
+  <img src="docs/screenshots/shelter.png" width="190" alt="Find a shelter">
+</p>
+
+- **River levels.** Live water heights from 11 USGS gauges on the Raritan,
+  Millstone, Passaic and other New Jersey rivers, each compared with its flood
+  stage. Rivers near flood stage are flagged on the map.
+- **Flood alerts.** Warnings in effect now from the National Weather Service, plus
+  the past 90 days from FEMA's alert archive, for your location or any NJ ZIP code.
+- **Shelters.** Open emergency shelters from FEMA within 50 miles, with directions,
+  or one tap to text `SHELTER <zip>` to FEMA at 43362, which works with no data
+  connection.
+
+## Keeping the map accurate
+
+A hazard comes off the map when:
+
+- **Three neighbors** within 1 mile of it each tap **It's not there anymore**,
+- **the person who reported it** removes it,
+- **a township** clears it, or
+- **3 days** pass with no update.
+
+Each account gets one vote, and you can't vote on your own report. Two reports of
+the same hazard close together become one report with two confirmations.
+
+## For towns
+
+Township staff sign in with their official email. Only addresses on 19 recognised
+municipal domains, confirmed by email, get a township account. In place of the
+Nearby tab they get the **DPW console**:
+
+- every open hazard, sorted the way a crew would work it
+- crew status (**DPW en route**, **Resolved**) and removal
+- GeoJSON and CSV export
+- a live GeoJSON feed to add to ArcGIS or QGIS
+
+Every report is filed over [Open311](https://wiki.open311.org/GeoReport_v2/), the
+civic standard many 311 systems already use, and towns that opt in receive it at
+their public works desk.
+
+## More features
+
+- **Nearby list:** every hazard in your search radius, nearest first, filtered by type.
+- **Notifications:**
+  - a flood alert where you are
+  - an impassable road or downed wire nearby
+  - updates on your own reports
+- **Nextdoor:** after posting, Nextdoor's composer opens with the post written for
+  you. You review it and post it there.
+- **Sign in:** with email, or with Google.
+- **Demo mode:** **Simulate nor'easter** adds clearly labelled sample hazards and
+  pushes every river past flood stage, so the app can be shown on a sunny day.
+
+## The AI
+
+Every photo is sent to the `analyze-image` server function, which asks OpenAI's
+`gpt-4.1-mini` vision model for a structured answer that can only contain:
+
+- one of five hazard types
+- one of three severities
+- one of three road statuses
+- whether power lines are involved
+- a 1–2 sentence description
+
+The OpenAI key is kept encrypted on the server and is never in the app or this
+repository. The photo is used for that one request and is not stored or published.
+
+## Where the data comes from
+
+| Source | Used for |
+| --- | --- |
+| [USGS Water Services](https://waterservices.usgs.gov/) | Live river gauge heights |
+| [National Weather Service](https://www.weather.gov/documentation/services-web-api) | Flood alerts in effect now |
+| [FEMA OpenFEMA](https://www.fema.gov/about/openfema/data-sets) | Past flood alerts |
+| [FEMA Open Shelters](https://gis.fema.gov/) | Open emergency shelters |
+| [OpenAI](https://platform.openai.com/) | Photo analysis |
+| Apple Maps / OpenStreetMap | Maps and street addresses |
+
+The flood stages in this build are demo values. Replace them with official NWS
+flood stages before real use.
+
+## Built with
+
+| Part | Technology |
+| --- | --- |
+| iPhone app | Swift, SwiftUI, MapKit, CoreLocation |
+| Website | TypeScript, React, Vite, Leaflet |
+| Backend | [Supabase](https://supabase.com): PostgreSQL + PostGIS, Auth, Edge Functions (TypeScript), Vault |
+| Rules | SQL: who can vote or remove, the 1-mile and 3-vote rules, expiry, township roles |
+| Tools | Python |
 
 ## Run it
 
+**iPhone app.** Open `StormWatchNJ.xcodeproj` in Xcode 15 or newer, pick an iPhone
+simulator and press **⌘R**. Nothing else to install; the backend is already
+hosted. To put the simulator in New Jersey:
+
 ```bash
-open StormWatchNJ.xcodeproj
+xcrun simctl location booted set 40.3318,-74.5893
 ```
 
-Pick any iPhone simulator and press **⌘R**. Nothing else to install — no package
-manager and no server to start; the backend is hosted on Supabase. You'll create an
-account on the welcome screen, so the device needs an internet connection the first
-time. The app ships with seeded demo reports and pulls live river data on launch.
+**Website.**
 
-Requirements: **Xcode 15 or newer**, iOS 17 deployment target.
+```bash
+cd web
+npm install
+npm run dev
+```
 
-> Signing: the target uses automatic signing with bundle ID
-> `com.stormwatchnj.StormWatchNJ`. The simulator needs no team. To run on a physical
-> iPhone, select the target → Signing & Capabilities → pick your Apple ID team and
-> change the bundle ID to something unique to you.
-
-## Web version
-
-`web/` is the same app rebuilt for the browser, shown in an iPhone frame on a
-computer and full-screen on a phone, against the same backend. It is deployed on
-Vercel with `web` as the root directory. See [web/README.md](web/README.md).
-It has every feature of the iPhone app, including Google sign-in (once a Web OAuth
-client ID is set) and notifications, plus a guest demo mode.
-
-## What's in the app
-
-| Tab | What it does |
-| --- | --- |
-| **Map** | Hazard pins colored by severity plus river-gauge pins, filtered to your search radius. Live counts of impassable roads, downed wires and rising rivers. |
-| **Nearby** | Active hazards within the radius, nearest first, filterable by hazard type. |
-| **Report** | Snap & Triage: photo → AI analysis → pre-filled draft → you confirm → posted. Camera, photo library, or two built-in sample scenes. |
-| **Alerts** | Flood alerts for your ZIP, open emergency shelters, and all 11 river gauges with live gage height against flood stage. |
-| **Settings** | Account, notifications, search radius, Nextdoor sharing, privacy, and demo controls. |
-| **DPW** | Township accounts only, in place of Nearby: every open hazard sorted by severity, GeoJSON/CSV export, and the GIS feed link. |
-
-### AI triage
-
-Photos are analyzed **on-device** by default — no network, no key. Two independent
-lines of evidence are combined:
-
-1. **Apple's Vision scene classifier** (`VNClassifyImageRequest`), matched against
-   *exact* identifiers from its 1,303-label taxonomy. Substring matching is actively
-   wrong here: `"tree"` matches `street`, `"line"` matches `feline`, `"car"` matches
-   `carrot`.
-2. **Colour analysis** (`ImageSignals`), because that taxonomy has no label for
-   flooding, a blocked drain or a downed wire. Blue-tinted and silty-brown pixels
-   count fully toward "water"; flat neutral grey counts only partially, since dry
-   asphalt is grey too. On the bundled sample scenes a flooded road measures 0.85
-   water coverage against 0.14 for a dry road — that separation is what the hazard
-   scoring rests on.
-
-The engine shows its working: every result lists what it actually saw. It is a
-transparent heuristic, not a trained hazard model. It proposes; you dispose — every
-field stays editable and nothing is published until you tap **Post report**.
-
-> **Simulator note:** Vision's scene classifier does not run in the iOS Simulator
-> (its Core ML backend fails with "could not create espresso context"). The app
-> detects this, falls back to colour analysis alone, caps confidence lower and says
-> so in the results. On a real device both signals are used.
-
-**OpenAI vision does the triage.** Every photo goes to the `analyze-image` server
-function, which asks an OpenAI vision model (`gpt-4.1-mini`) for a strictly
-structured answer. There is no switch to turn it off. The OpenAI key is stored
-encrypted in Supabase Vault and read only by the server function; it is never in
-the app or this repository.
-
-The on-device engine described above is the fallback: if OpenAI cannot be reached —
-no signal, or the service is down — the app uses it instead and says so, so a
-resident can still file a report in the middle of a storm.
-
-### River telemetry
-
-The app polls the [USGS Water Services](https://waterservices.usgs.gov/) instantaneous-values
-API for gage height (parameter `00065`) at 11 NJ sites across the Raritan, Millstone,
-Passaic, Saddle, Manasquan, Pequest and Rancocas basins. The API is public and needs
-no key, so the client calls it directly.
-
-**Flood-stage thresholds in this build are demo values**, not official numbers. Replace
-them with the NWS AHPS stages for each site before this is used for anything real.
-Station names and coordinates are the live values USGS returns.
-
-### Simulate Nor'easter
-
-Settings → **Simulate nor'easter**. Adds clearly-labelled simulated hazards and pushes
-every gauge past flood stage, so the map, alert banner and export all have something
-to show on a clear day — useful when recording the two-minute submission video. Turn
-it off to return to live data.
-
-All seeded and simulated reports are fictional sample data, not records of real incidents.
-
-## Backend
-
-The backend runs on [Supabase](https://supabase.com) — there is no server to start.
-Everything that defines it is in `supabase/`:
-
-| Piece | Where | What it does |
-| --- | --- | --- |
-| Tables | `migrations/0001_schema.sql` | Hazards (PostGIS), votes, profiles, township domains, removal audit, dispatch towns |
-| Rules | `migrations/0002_rules.sql`, `0005_expiry_and_vote_distance.sql` | Reporting, the three-vote rule (voters within 1 mile), 3-day expiry, removal, crew status, township roles |
-| Open311 | `functions/georeport` | GeoReport v2: services, service definitions, GET and POST requests |
-| GIS feed | `functions/hazard-feed` | GeoJSON layer — add by URL in ArcGIS Online or QGIS |
-| AI triage | `functions/analyze-image` | Photo analysis by OpenAI; key held in Supabase Vault. Signed-in users always; website guests within limits |
-
-**How access is controlled.** Every table has row level security on, with no
-policies for app users except reading the town list and your own profile. The app
-never reads or writes a table directly; it calls database functions that check who
-is asking. So who reported a hazard never reaches another user, and nobody can vote
-twice, remove someone else's report, or make themselves a township by calling the
-API by hand. The app ships only the publishable key, which grants nothing by itself.
-
-**Open311.** Reads are public. A POST must come from a signed-in user or carry an
-`api_key` listed in the `OPEN311_API_KEYS` secret (for a town's own system). A
-second report of the same kind of hazard within 75 m and 6 hours becomes a
-confirmation instead of a second ticket. Reports outside New Jersey are refused.
-Reporter name, email and phone are accepted, as the spec allows, and discarded.
-
-**Forwarding to a town.** Add a row to `dispatch_towns` with the ZIP code and a
-`webhook_url`, an `email`, or both. There are no built-in destinations: a town opts
-in by giving you an address. The desk receives the hazard, severity, street address,
-GPS, a Google Maps pin and a plain note that it is an unverified resident report.
-Email needs the `RESEND_API_KEY` and `DISPATCH_FROM_EMAIL` secrets.
-
-**Checks.** `supabase/tests/check_rules.sql` exercises the rules inside a
-transaction that rolls back (40 checks). `supabase/tests/check_live.py` exercises the
-deployed API over the network (46 checks).
-
-Not implemented: XML responses, placing a report from `address_string` alone (no
-geocoder server-side), and an ESRI Shapefile export — ArcGIS and QGIS read the
-GeoJSON feed directly.
+Setup for email sign-in, Google sign-in, town forwarding and deployment is in
+[docs/SETUP.md](docs/SETUP.md). The website's details are in
+[web/README.md](web/README.md).
 
 ## Project layout
 
 ```
-StormWatch/
-├── StormWatchNJ.xcodeproj/
-├── StormWatchNJ/
-│   ├── StormWatchNJApp.swift
-│   ├── Info.plist
-│   ├── Models/          HazardReport, USGSStation and their enums
-│   ├── Services/        Store, USGS polling, triage engines, location, export
-│   └── Views/           Map, list, snap & triage, rivers, DPW console
-├── Tools/
-│   └── generate_xcodeproj.py
-├── supabase/          migrations, server functions, checks
-└── web/               the web version (React + Vite), for Vercel
-```
-
-### Regenerating the project file
-
-`project.pbxproj` is generated, not hand-edited. After adding or deleting a Swift file
-in `Models/`, `Services/` or `Views/`, run:
-
-```bash
-python3 Tools/generate_xcodeproj.py
-```
-
-Adding files through Xcode's UI works too — the generator just keeps the file tidy and
-diffable, and lets the project be rebuilt from scratch.
-
-### Sharing to Nextdoor
-
-After you post a report, the app offers to cross-post it to your Nextdoor
-neighborhood. It opens Nextdoor's own post composer with the text written for you
-— hazard, severity, road status, town, and a downed-wire safety line — and you
-review and post it there. The same option lives on every report's detail screen.
-Turn the prompt off in **Settings → Neighborhood sharing**.
-
-This uses Nextdoor's [Share Plugin](https://developer.nextdoor.com/reference/share-plugin)
-(`https://nextdoor.com/sharekit/`), which is an open offering: no API key, no
-approval, no account linking.
-
-**It is not fully automatic, and it cannot be.** Nextdoor's other option, the
-[Publish API](https://developer.nextdoor.com/docs/sharing-overview), can post
-natively, but it requires applying for access and OAuth-linking each user's
-Nextdoor account — and Nextdoor still requires the post to originate from a real
-Nextdoor user (a neighbor, business, or public agency) rather than from the
-partner platform. If StormWatch NJ is ever adopted by a town as a Nextdoor Public
-Agency, `NextdoorShare` is the seam to swap for that API.
-
-Two limitations worth knowing:
-
-- **The photo is not carried over.** The Share Plugin takes text only, which is
-  consistent with the app's promise that photos are never published.
-- **The precise coordinate is not included** — only the municipality and your
-  description, since a Nextdoor post is public to the whole neighborhood.
-
-### Accounts and removing hazards
-
-**Everyone signs in.** The app opens on a welcome screen with three ways in —
-create an account, sign in, or sign in as a township — and nothing else is reachable
-until one succeeds. Accounts are handled by Supabase Auth. Once signed in, the
-session is kept in the Keychain and the app opens straight to the map, including
-with no signal.
-
-A hazard comes off the map — for everyone — in four ways:
-
-| Who | How |
-| --- | --- |
-| The person who reported it | **Remove for everyone** on the report |
-| Three different people within 1 mile | Each taps **It's not there anymore**; the third vote removes it |
-| A township account | **Remove for everyone**, and can set crew status |
-| Time | It expires 3 days after its last update (posted, confirmed by a second report, or a crew status change) |
-
-Voting needs an account so that "three people" means three people: one vote per
-account, and the reporter cannot vote on their own report. A vote counts only from
-within 1 mile of the hazard, so the people saying it's gone are near enough to have
-seen the spot: the app sends the phone's real position with the vote (never the demo
-area it shows when location is off), and the server checks the distance. A
-determined person could fake their phone's location; the rule stops casual votes
-from across the state, not a deliberate spoofer.
-
-Expiry runs on the server every 15 minutes (a `pg_cron` job), so stale hazards
-disappear even if nobody opens the app, and the app's list hides them in between.
-
-A removed hazard is
-deleted from the live table and disappears from the app, the Open311 endpoint and
-the GeoJSON feed; a one-line audit record (what, where, when, why) is kept, because
-three accounts being able to erase a hazard without trace would invite abuse.
-
-Every report you post goes to the shared map. The seeded demo hazards are the
-exception: they exist only on the device, so they can be removed there but not
-voted on.
-
-**Resident accounts** use an email and password, confirmed by email.
-
-**Township accounts** are for municipal staff. An account is a township account
-only when all three hold: it asked to be one, its email is on one of the 19
-recognised municipal domains (matched exactly — `a@princetonnj.gov.example.com` and
-`a@notprincetonnj.gov` are refused), and that email has been confirmed. The first
-two are things anyone can type; confirmation is what proves the person receives mail
-there. This is decided by a database trigger, not by the app, and is recomputed
-whenever the account changes. The domain list lives in the `township_domains` table;
-it was supplied for this project and has not been checked town by town — review it
-before real use.
-
-**Confirmation email.** Supabase sends it, and its link goes back to wherever the
-person signed up: the iPhone app asks for `stormwatchnj://auth-callback` (the app
-opens and signs in), the website asks for its own address. Supabase only honours
-those if they are allowed, so set in *Authentication → URL Configuration*:
-
-- **Site URL**: the public website, `https://storm-watch-nj-i9tv.vercel.app` (not
-  the `…-projects.vercel.app` address, which is behind Vercel's login).
-- **Redirect URLs**: `stormwatchnj://**`, `https://storm-watch-nj-i9tv.vercel.app/**`
-  and `http://localhost:5174/**`.
-
-If a link still lands on the website, the site shows "Email confirmed" with an
-**Open the StormWatch NJ app** button, and the app signs in by itself when the
-person comes back to it. Adding `{{ .Token }}` to *Emails → Confirm signup* also
-puts a code in the email, which both apps accept.
-
-Supabase's built-in mailer sends only about 2 emails an hour for the whole project
-and is meant for testing. For real use, add your own SMTP provider (Resend, Postmark,
-SendGrid…) under *Authentication → Emails → SMTP Settings*.
-
-Keep **Confirm email** switched on. Township security depends on it.
-
-**Google sign-in** is built but switched off until it has an OAuth client, which has
-to come from your own Google account:
-
-1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
-   create an OAuth client ID of type **iOS** with bundle ID
-   `com.stormwatchnj.StormWatchNJ`.
-2. In Supabase, *Authentication → Sign In / Providers → Google*: enable it and add
-   that client ID.
-3. Put the same client ID in `StormWatchNJ/Info.plist` under `GoogleClientID`.
-
-The "Continue with Google" button appears once step 3 is done. This path has not
-been run end to end, because it cannot be without that client ID.
-
-### Flood alerts
-
-**Alerts → Flood alerts** shows flood alerts for a ZIP code — the one you are in by
-default, or any New Jersey ZIP you type. It uses two federal sources, because they
-answer different questions:
-
-| Source | What it shows |
-| --- | --- |
-| National Weather Service (`api.weather.gov`) | Alerts in effect **right now**. NWS is the agency that issues flood watches and warnings. |
-| FEMA OpenFEMA, [IPAWS Archived Alerts](https://www.fema.gov/openfema-data-page/ipaws-archived-alerts-v1) | Flood warnings issued for that spot in the **past 90 days**. |
-
-FEMA's dataset alone could not do the job: FEMA publishes it with a deliberate
-24-hour delay, so it never contains a current warning. It is shown as history and
-labelled that way. The FEMA query matches alerts whose drawn area contains the
-point, which covers flood *warnings*; county-wide *watches* have no drawn area and
-appear only in the live list. When a flood alert is in effect, the map shows a
-banner.
-
-### Shelters
-
-**Alerts → Find a shelter** offers two ways to find an open emergency shelter:
-
-- **FEMA's Open Shelters service** — shelters FEMA lists as open within 50 miles,
-  nearest first, with directions. On an ordinary day there are none near New Jersey,
-  and the screen says so rather than looking broken.
-- **FEMA's text line** — a button that opens Messages with `SHELTER <zip>` addressed
-  to 43362 (4FEMA). You tap send; FEMA replies by text. This works with no data
-  connection, which is when shelters matter most.
-
-The app never sends the text itself. Local officials are the final word on which
-shelters are open.
-
-### Notifications
-
-The app asks for notification permission once you are signed in, and then tells you
-about three things:
-
-| Notification | When |
-| --- | --- |
-| **Flood alert in effect** | The National Weather Service issues a flood alert where you are |
-| **Hazard nearby** | Someone reports an impassable road or downed wire inside your search radius |
-| **Your report** | A crew is assigned, it is resolved, or it comes off the map |
-
-Minor hazards, hazards outside your radius, and your own reports never notify, and
-signing in does not announce what is already on the map. Each type has a switch in
-**Settings → Notifications**. Tapping one opens the relevant tab.
-
-**These are local notifications, not server push.** The app raises them after
-checking the server — while it is open, or when iOS wakes it for a background
-refresh. iOS decides when that happens: often within the hour for an app used daily,
-and never once the app has been force-quit. So they are a useful heads-up, not a
-guaranteed emergency alert, and the settings screen says so and points people to the
-iPhone's built-in Emergency Alerts. Instant push would need the Apple Developer
-Program and an APNs sender on the server.
-
-River gauges deliberately do not notify: their flood thresholds in this build are
-demo values, and an alarming notification should not rest on a placeholder.
-
-### Utility hand-off for downed wires
-
-When a report involves utility lines — the "Utility lines involved" switch, or the
-Downed Wire hazard type — a red life-safety banner pins itself under the header on
-the report screen and tops that report's detail screen:
-
-- **Stay back first.** "Do not approach. Stay at least 30 feet back" — PSE&G's
-  published distance.
-- **Call 911**, then **Call PSE&G** (1-800-436-7734). Other NJ electric utilities
-  (JCP&L, Atlantic City Electric, Orange & Rockland) are one tap away, because the
-  app cannot reliably know which utility serves an address.
-- **"Tell the dispatcher: 305 Fox Run Dr, Plainsboro, NJ 08536"** — the hazard's
-  street address, reverse-geocoded, so the caller has it to read out.
-
-Nothing is sent automatically. Utilities do not offer write APIs for outage
-tickets, and should not; each button opens the dialer and iOS confirms before a
-call is placed. On a device with no dialer the number is shown instead.
-
-Two things this deliberately does **not** do:
-
-- **It does not text the hazard to PSE&G.** PSE&G's text line (`OUT` to 47734)
-  reports an outage at the address on the texter's *own* account, from a phone
-  already enrolled with `REG`. It cannot report a wire somewhere else, and it takes
-  no address. The app offers it only as "my own power is out".
-- **It does not pass an address to PSE&G's website.** The outage page takes no
-  address parameters, so the link opens the page as-is.
-
-Numbers come from the [NJ OEM utility list](https://www.nj.gov/njoem/plan-prepare/public-utilities.shtml)
-and [PSE&G's downed power line page](https://nj.pseg.com/safetyandreliability/electricsafety/downedpowerlines).
-
-### Public works relay
-
-Each report you post is filed with the backend over [Open311 GeoReport v2](https://wiki.open311.org/GeoReport_v2/),
-the civic standard many 311 systems already speak. From there it joins the open GIS
-feed and is forwarded to the town's public works desk — if that town has opted in.
-The photo is never sent, and a report that could not be forwarded — posted with
-no signal, say — can be re-sent from its detail screen.
-
-### Location
-
-The app needs a New Jersey location to show anything — the radius filter is the
-whole point. It handles every case rather than showing an empty map:
-
-| Situation | Behaviour |
-| --- | --- |
-| Real fix inside NJ | Uses it. |
-| Real fix outside NJ | Falls back to the Plainsboro demo area and says so. |
-| Permission denied or not yet granted | Falls back, with an **Allow** button on the map. |
-
-This matters in the simulator, whose default location is Cupertino — over 2,000
-miles outside any 5-mile radius. To simulate a real NJ position:
-
-```bash
-xcrun simctl location "iPhone 17 Pro" set 40.3318,-74.5893
-```
-
-Or in the Simulator: **Features → Location → Custom Location**.
-
-### Debug-only launch arguments
-
-`Debug` builds accept two arguments used by the screenshot pass. They are compiled
-out of `Release` entirely.
-
-```bash
-xcrun simctl launch "iPhone 17 Pro" com.stormwatchnj.StormWatchNJ \
-  -startTab 2 -demoScene floodedRoad
-```
-
-- `-startTab 0…4` — open a given tab on launch
-- `-demoScene floodedRoad|downedTree` — load a sample scene and run triage
-- `-alertTestPoint "lat,lon"` — check live flood alerts somewhere one is in effect
-- `-shelterTestPoint "lat,lon"` — check the shelter list somewhere one is open
-
-### App icon
-
-`Assets.xcassets/AppIcon.appiconset/AppIcon.png` is drawn in code so it is
-reproducible and reviewable in the diff:
-
-```bash
-swift Tools/make_app_icon.swift StormWatchNJ/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+StormWatchNJ/      the iPhone app (Models, Services, Views)
+web/               the website
+supabase/          database migrations, server functions and tests
+docs/              setup notes and screenshots
+Tools/             project file and app icon generators
 ```
 
 ## Privacy
 
-Photos are never published or stored by StormWatch; only the fields you confirm go
-on the map. Each photo is sent to OpenAI once to read the scene. Your location is
-attached to a report only when you submit one, and is never uploaded on its own.
+- Photos are sent to OpenAI only to fill in the report. They are never stored or
+  published.
+- Your location is attached to a report only when you post one.
+- Who filed a report is never shown to anyone else.
+
+In an emergency, call 911.
