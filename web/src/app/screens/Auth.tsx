@@ -42,6 +42,8 @@ export function AuthScreen({ kind: initialKind, creating: initialCreating, onBac
       const { data, error } = await supabase.auth.signUp({ email: address, password,
         options: { data: { account_type: kind }, emailRedirectTo: window.location.origin } });
       if (error) throw error;
+      // an email that already has an account gets no email from Supabase
+      if (data.user && data.user.identities?.length === 0) throw new Error(EXISTING_ACCOUNT);
       if (!data.session) setPending(address);
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email: address, password });
@@ -154,6 +156,13 @@ export function AuthScreen({ kind: initialKind, creating: initialCreating, onBac
               </div>
               <GoogleButton key={kind} disabled={busy} onError={m => setMessage(m)} onToken={(token, nonce) => run(() => signInWithGoogle(token, nonce))} />
             </>}
+            {!creating && (
+              <button style={{ fontSize: 13, fontWeight: 600, opacity: 0.85 }} disabled={!email || busy} onClick={() => run(async () => {
+                const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: window.location.origin });
+                if (error) throw error;
+                setMessage(`If there's an account for ${email.trim()}, a link to set a new password is on its way.`);
+              })}>Forgot password?</button>
+            )}
             <button style={{ fontSize: 13, fontWeight: 600, opacity: 0.85 }} onClick={() => { setCreating(!creating); setMessage(null); }}>
               {creating ? "I already have an account" : "New here? Create an account"}
             </button>
@@ -178,9 +187,12 @@ export function AuthScreen({ kind: initialKind, creating: initialCreating, onBac
   );
 }
 
+const EXISTING_ACCOUNT = "An account with this email already exists. Sign in instead. If you made it with Google, use Continue with Google, or Forgot password to set a password.";
+
 function friendly(message: string): string {
+  if (message === EXISTING_ACCOUNT) return message;
   if (/invalid login credentials/i.test(message)) return "Incorrect email or password.";
-  if (/already registered|already exists/i.test(message)) return "An account with that email already exists. Sign in instead.";
+  if (/already registered|already exists/i.test(message)) return EXISTING_ACCOUNT;
   if (/expired|invalid.*otp|token has expired/i.test(message)) return "That code is wrong or has expired. Request a new one.";
   if (/email rate limit/i.test(message)) return "Too many emails have been sent in the last hour, so a new one can't go out yet. Try again later, or use the link in an email you already have.";
   if (/rate limit|too many/i.test(message)) return "Too many attempts. Wait a minute and try again.";

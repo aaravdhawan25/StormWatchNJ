@@ -5,12 +5,13 @@ export const SUPABASE_URL = "https://yvmmtuqwjvztvxwpmfwf.supabase.co";
 export const SUPABASE_KEY = "sb_publishable_J48JNj6IRTzpzwkBsgM_MQ_NmERLY1v";
 
 // read the email link before Supabase clears it
-export const emailLink: { ok: boolean; message?: string } | null = (() => {
+export const emailLink: { ok: boolean; message?: string; recovery?: boolean } | null = (() => {
   const h = new URLSearchParams(window.location.hash.slice(1));
   if (h.get("error_code") || h.get("error")) {
     history.replaceState(null, "", window.location.pathname);
     return { ok: false, message: h.get("error_description") ?? undefined };
   }
+  if (h.get("access_token") && h.get("type") === "recovery") return { ok: true, recovery: true };
   if (h.get("access_token") && ["signup", "email", "email_change"].includes(h.get("type") ?? "")) return { ok: true };
   return null;
 })();

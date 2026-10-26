@@ -152,6 +152,18 @@ struct AuthScreen: View {
             .disabled(isWorking)
         }
 
+        if !isCreating {
+            Button("Forgot password?") {
+                run {
+                    try await account.sendPasswordReset(email: email)
+                    message = "If there's an account for \(email), a link to set a new password is on its way."
+                }
+            }
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.85))
+            .disabled(email.isEmpty || isWorking)
+        }
+
         Button(isCreating ? "I already have an account" : "New here? Create an account") {
             isCreating.toggle()
             message = nil

@@ -107,11 +107,21 @@ final class AccountStore: ObservableObject {
             store(SessionResponse(access_token: token, refresh_token: refresh,
                                   expires_in: reply.expires_in ?? 3600, user: user))
             await loadProfile()
+        } else if reply.identities?.isEmpty == true {
+            // the email already has an account, so Supabase sends nothing
+            throw APIError.server(status: 400, detail: Self.existingAccountMessage, code: "user_already_exists")
         } else {
             pendingEmail = email
             pendingPassword = password
             pendingKind = kind
         }
+    }
+
+    static let existingAccountMessage = "An account with this email already exists. Sign in instead. If you made it with Google, use Continue with Google, or Forgot password to set a password."
+
+    // emails a link to set a new password; it opens the website to choose one
+    func sendPasswordReset(email: String) async throws {
+        let _: BackendAPI.Empty = try await BackendAPI().send("POST", "auth/v1/recover", body: ["email": Self.normalise(email)])
     }
 
     func signIn(email: String, password: String, kind: AccountKind) async throws {
@@ -315,6 +325,8 @@ final class AccountStore: ObservableObject {
         let refresh_token: String?
         let expires_in: Int?
         let user: AuthUser?
+        let identities: [Identity]?
+        struct Identity: Decodable {}
     }
 
     private struct Profile: Decodable {
