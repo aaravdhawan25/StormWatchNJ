@@ -2,9 +2,12 @@
 //
 //   POST /analyze-image   multipart/form-data with an image in the "file" field
 //
-// Signed-in users only, so the OpenAI key cannot be spent by strangers. The key
-// is read from the OPENAI_API_KEY function secret if set, otherwise from Supabase
-// Vault (name "openai_api_key"). It lives only on the server, never in the app.
+// Signed-in users (the iPhone app and the website) are always allowed. The
+// website's guest demo is allowed too, within limits so strangers can't run up
+// the OpenAI bill: 10 analyses an hour per visitor and 300 a day for all guests
+// together, counted in the database by a hash of the visitor's IP address.
+// The key is read from the OPENAI_API_KEY function secret if set, otherwise from
+// Supabase Vault (name "openai_api_key"). It lives only on the server.
 // The photo is passed to OpenAI for this one request and is not stored by
 // StormWatch.
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -38,7 +41,7 @@ const SCHEMA = {
 // The web demo calls this from a browser, which first sends an OPTIONS preflight.
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-stormwatch-guest",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -51,8 +54,17 @@ Deno.serve(async (req) => {
 
   const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { data: auth } = await admin.auth.getUser(token);
-  if (!auth?.user) return reply({ detail: "Sign in to do that." }, 401);
+  const { data: auth } = token ? await admin.auth.getUser(token) : { data: null };
+  if (!auth?.user) {
+    if (req.headers.get("x-stormwatch-guest") !== "1") return reply({ detail: "Sign in to do that." }, 401);
+    const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
+    const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("stormwatch-guest:" + ip));
+    const visitor = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, "0")).join("");
+    const { data: verdict, error } = await admin.rpc("claim_guest_triage", { p_visitor: visitor });
+    if (error) return reply({ detail: "AI analysis is unavailable right now." }, 503);
+    if (verdict === "visitor") return reply({ detail: "Guest demo limit reached (10 photos an hour). Create an account to keep using AI analysis." }, 429);
+    if (verdict === "site") return reply({ detail: "The guest demo has used today's AI analyses. Create an account to keep using AI analysis." }, 429);
+  }
 
   const key = Deno.env.get("OPENAI_API_KEY") ??
     (await admin.rpc("server_secret", { p_name: "openai_api_key" })).data;

@@ -110,7 +110,7 @@ Everything that defines it is in `supabase/`:
 | Rules | `migrations/0002_rules.sql`, `0005_expiry_and_vote_distance.sql` | Reporting, the three-vote rule (voters within 1 mile), 3-day expiry, removal, crew status, township roles |
 | Open311 | `functions/georeport` | GeoReport v2: services, service definitions, GET and POST requests |
 | GIS feed | `functions/hazard-feed` | GeoJSON layer — add by URL in ArcGIS Online or QGIS |
-| AI triage | `functions/analyze-image` | Photo analysis by OpenAI; key held in Supabase Vault |
+| AI triage | `functions/analyze-image` | Photo analysis by OpenAI; key held in Supabase Vault. Signed-in users always; website guests within limits |
 
 **How access is controlled.** Every table has row level security on, with no
 policies for app users except reading the town list and your own profile. The app

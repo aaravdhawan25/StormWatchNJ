@@ -1,4 +1,4 @@
-import { Building2, ChevronRight, Eye, Share, Sheet, Copy } from "lucide-react";
+import { Building2, ChevronRight, Eye, Share, Sheet } from "lucide-react";
 import { HazardGlyph, Header, SeverityBadge, useNav } from "../components/ui";
 import { FEED_URL } from "../lib/config";
 import type { Hazard } from "../lib/models";
@@ -57,7 +57,7 @@ export function DpwScreen() {
           <button className="cell link" onClick={() => download("stormwatch_nj_hazards.geojson", geoJSON(open), "application/geo+json")}><Share size={18} /> Export GeoJSON</button>
           <button className="cell link" onClick={() => download("stormwatch_nj_hazards.csv", csv(open), "text/csv")}><Sheet size={18} /> Export CSV</button>
           <button className="cell link" onClick={() => nav.present(
-            <div className="scroll"><pre style={{ fontSize: 10.5, whiteSpace: "pre-wrap", userSelect: "text" }}>{geoJSON(open)}</pre></div>)}><Eye size={18} /> Preview GeoJSON</button>
+            <><div style={{ textAlign: "center", fontWeight: 600, padding: "10px 0 6px" }}>Export preview</div><div className="scroll"><pre style={{ fontSize: 10.5, whiteSpace: "pre-wrap", userSelect: "text" }}>{geoJSON(open)}</pre></div></>)}><Eye size={18} /> Preview GeoJSON</button>
         </div>
         <p className="group-foot">RFC 7946 FeatureCollection with longitude-first coordinates, ready for ArcGIS, QGIS or a routing tool.</p>
 
@@ -67,9 +67,14 @@ export function DpwScreen() {
             <span className="tiny muted">Live GIS feed</span>
             <code style={{ fontSize: 11, wordBreak: "break-all", userSelect: "text" }}>{FEED_URL}</code>
           </div>
-          <button className="cell link" onClick={() => navigator.clipboard?.writeText(FEED_URL)}><Copy size={18} /> Copy feed link</button>
+          <button className="cell link" onClick={async () => {
+            // The app opens the share sheet; browsers that have one do the same, others copy the link.
+            try { if (navigator.share) { await navigator.share({ title: "StormWatch NJ live GIS feed", url: FEED_URL }); return; } } catch { return; }
+            await navigator.clipboard?.writeText(FEED_URL);
+            nav.dialog({ title: "Feed link copied", message: FEED_URL, actions: [{ label: "OK" }] });
+          }}><Share size={18} /> Share feed link</button>
         </div>
-        <p className="group-foot">Every report is filed over the Open311 civic standard, and towns that have opted in receive it at their public works desk. The feed link can be added to ArcGIS Online or QGIS as a live layer. Photos are never sent.</p>
+        <p className="group-foot">Every report you post is filed over the Open311 civic standard, and towns that have opted in receive it at their public works desk. The feed link can be added to ArcGIS Online or QGIS as a live layer. Photos are never sent.</p>
       </div>
     </div>
   );

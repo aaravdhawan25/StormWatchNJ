@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { reverseGeocode, type Place } from "../lib/publicData";
-import { Camera, ChevronRight, Images, RotateCcw, Send, Sparkles, BadgeCheck, Wand2, Waves, Leaf, Zap } from "lucide-react";
+import { Camera, ChevronRight, Images, RefreshCw, RotateCcw, Send, Sparkles, BadgeCheck, Wand2, Waves, Leaf, Zap } from "lucide-react";
 import { HazardGlyph, Header, StormBackdrop, Toggle, useNav } from "../components/ui";
 import { LifeSafetyBanner } from "../components/LifeSafety";
 import type { HazardType, RoadStatus, Severity } from "../lib/models";
 import { HAZARD_TYPES, ROAD_STATUSES, SEVERITIES, hazardLabel, isLifeSafetyRisk, roadLabel, severityColor, severityLabel } from "../lib/models";
 import { useStore, nearbyTownFor } from "../lib/store";
+import { cameraBlocked, hasCamera } from "../lib/device";
 import { supabase } from "../lib/config";
 import { analyzeOnDevice, analyzeWithOpenAI, type Analysis } from "../lib/triage";
 import { nextdoorURL } from "./HazardDetail";
@@ -35,6 +36,8 @@ export function ReportScreen() {
     return () => { live = false; };
   }, [!!photo, store.location.latitude, store.location.longitude]); // eslint-disable-line react-hooks/exhaustive-deps
   const guest = store.account?.guest;
+  const [cameraHere, setCameraHere] = useState(true);
+  useEffect(() => { hasCamera().then(setCameraHere); }, []);
 
   const reset = () => { setPhoto(null); setAnalysis(null); setError(null); setDetails(""); setWires(false); setSeverity("MODERATE"); setRoad("ONE_LANE_OPEN"); setType("STREET_FLOODING"); };
 
@@ -43,8 +46,8 @@ export function ReportScreen() {
   const triage = async (blob: Blob) => {
     setAnalyzing(true); setError(null); setAnalysis(null);
     try {
+      // Always OpenAI, as in the app; the on-device analysis is only the fallback.
       const token = (await supabase.auth.getSession()).data.session?.access_token;
-      if (!token) { apply(await analyzeOnDevice(blob, town)); return; }
       try { apply(await analyzeWithOpenAI(blob, token)); }
       catch (e) { setError(`${(e as Error).message} Used on-device analysis instead.`); apply(await analyzeOnDevice(blob, town)); }
     } finally { setAnalyzing(false); }
@@ -52,6 +55,27 @@ export function ReportScreen() {
 
   const take = (blob: Blob) => { const url = URL.createObjectURL(blob); setPhoto({ blob, url }); triage(blob); };
   const useDemo = async (file: string) => take(await (await fetch(file)).blob());
+
+  // Same checks as the app's camera button: no camera → explain; blocked → say so.
+  const takePhoto = async () => {
+    if (!(await hasCamera())) {
+      nav.dialog({ title: "Camera access not granted",
+        message: "This device has no camera available. Choose a photo from your library or try a sample scene instead.", actions: [{ label: "OK" }] });
+      return;
+    }
+    if (await cameraBlocked()) {
+      nav.dialog({ title: "Camera access is off",
+        message: "StormWatch NJ needs the camera to photograph a hazard. Allow the camera for this site in your browser's settings. You can still choose an existing photo from your library.",
+        actions: [{ label: "Not now" }] });
+      return;
+    }
+    fileRef.current?.click();
+  };
+
+  const shareToNextdoor = (h: Parameters<typeof nextdoorURL>[0]) => {
+    if (!window.open(nextdoorURL(h), "_blank"))
+      nav.dialog({ title: "Couldn't open Nextdoor", message: "Your report is still saved in StormWatch NJ. You can share it later from the report's detail screen.", actions: [{ label: "OK" }] });
+  };
 
   const post = async () => {
     setPosting(true);
@@ -65,7 +89,7 @@ export function ReportScreen() {
         message: (guest ? "Your report is on the map in this browser. Create an account to share reports with your neighbors and town."
                         : "Your report is on the map and in the public works queue.")
           + (store.settings.offerNextdoor ? " Want to tell your neighborhood too? Nextdoor will open with the post written for you — you review it and tap Post there." : ""),
-        actions: store.settings.offerNextdoor ? [{ label: "Share to Nextdoor", strong: true, run: () => window.open(nextdoorURL(h), "_blank") }, ...actions] : actions,
+        actions: store.settings.offerNextdoor ? [{ label: "Share to Nextdoor", strong: true, run: () => shareToNextdoor(h) }, ...actions] : actions,
       });
     } catch (e) {
       nav.dialog({ title: "Couldn't post", message: (e as Error).message, actions: [{ label: "OK" }] });
@@ -101,10 +125,10 @@ export function ReportScreen() {
                 ))}
               </div>
             </div>
-            <button className="btn primary" onClick={() => fileRef.current?.click()}><Camera size={18} /> Take a photo</button>
+            <button className="btn primary" onClick={takePhoto}><Camera size={18} /> Take photo</button>
             <button className="btn soft" onClick={() => libraryRef.current?.click()}><Images size={18} /> Choose from library</button>
             <div className="card">
-              <div className="row small muted" style={{ fontWeight: 600, marginBottom: 10 }}><Wand2 size={14} /> Try it with a sample scene</div>
+              <div className="row small muted" style={{ fontWeight: 600, marginBottom: 10 }}><Wand2 size={14} /> {cameraHere ? "Try it with a sample scene" : "No camera on this device"}</div>
               <div className="row" style={{ gap: 10 }}>
                 {([["/demo-flooded-road.jpg", "Flooded road", <Waves size={20} key="w" />, "STREET_FLOODING"], ["/demo-downed-tree.jpg", "Tree across road", <Leaf size={20} key="l" />, "DOWNED_TREE"]] as const).map(([file, label, icon, t]) => (
                   <button key={file} onClick={() => useDemo(file)} style={{ flex: 1, padding: "12px 0", borderRadius: 14, color: "#fff", fontSize: 12, fontWeight: 600,
@@ -115,7 +139,6 @@ export function ReportScreen() {
               </div>
               <p className="caption" style={{ margin: "10px 0 0" }}>Illustrations, not photographs — they exist so the triage engine can be tested without a camera roll.</p>
             </div>
-            {guest && <p className="caption">Guest demo: photos are analyzed in the browser. Sign in to use OpenAI analysis.</p>}
           </div>
         ) : (
           <div className="stack" style={{ gap: 14 }}>
@@ -132,7 +155,7 @@ export function ReportScreen() {
                   : <Sparkles size={30} color="var(--teal)" style={{ width: 58 }} />}
                 <div>
                   <b style={{ fontSize: 17 }}>{analyzing ? "Analyzing scene…" : analysis ? hazardLabel[analysis.hazardType] : "Not analyzed yet"}</b>
-                  <div className="small" style={{ color: "var(--teal)" }}>{analysis?.engine ?? (guest ? "On-device analysis" : "OpenAI vision")}</div>
+                  <div className="small" style={{ color: "var(--teal)" }}>{analysis?.engine ?? "OpenAI vision"}</div>
                 </div>
               </div>
               {analysis && <div style={{ marginTop: 12 }}>
@@ -141,6 +164,9 @@ export function ReportScreen() {
               </div>}
               {error && <div className="tiny" style={{ color: "var(--orange)", marginTop: 8 }}>⚠︎ {error}</div>}
               <p className="caption" style={{ margin: "10px 0 0" }}>These fields were machine-filled. Check them before you post.</p>
+              <button className="row small" disabled={analyzing} onClick={() => photo && triage(photo.blob)}
+                      style={{ marginTop: 10, gap: 6, color: "var(--teal)", fontWeight: 600, opacity: analyzing ? 0.45 : 1 }}>
+                <RefreshCw size={14} /> {analysis ? "Re-run triage" : "Run triage"}</button>
             </div>
 
             <div className="card stack" style={{ gap: 14 }}>
@@ -171,7 +197,7 @@ export function ReportScreen() {
 
             <button className="btn primary" disabled={!details.trim() || posting} onClick={post}><Send size={18} /> {posting ? "Posting…" : "Post report"}</button>
             <p className="caption" style={{ textAlign: "center" }}>
-              {guest ? "Guest demo: this report stays in this browser." : "The photo is sent to OpenAI for analysis and is never published. Only the fields above go on the map."}
+              The photo is sent to OpenAI for analysis and is never published. Only the fields above go on the map.
             </p>
           </div>
         )}

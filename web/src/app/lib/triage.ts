@@ -6,13 +6,15 @@ export interface Analysis {
   description: string; engine: string; evidence: string[]; confidence?: number;
 }
 
-/** Photo analysis by OpenAI through the analyze-image server function. */
-export async function analyzeWithOpenAI(photo: Blob, token: string): Promise<Analysis> {
+/** Photo analysis by OpenAI through the analyze-image server function — the
+ *  same one the iPhone app uses. Without an account (the guest demo) the server
+ *  still allows it, within a per-visitor and daily limit. */
+export async function analyzeWithOpenAI(photo: Blob, token?: string): Promise<Analysis> {
   const form = new FormData();
   form.append("file", photo, "incident.jpg");
   const res = await fetch(functionURL("analyze-image"), {
     method: "POST", body: form,
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` },
+    headers: token ? { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` } : { apikey: SUPABASE_KEY, "x-stormwatch-guest": "1" },
     signal: AbortSignal.timeout(30000),
   });
   const body = await res.json().catch(() => ({}));
@@ -28,8 +30,8 @@ export async function analyzeWithOpenAI(photo: Blob, token: string): Promise<Ana
 /**
  * Colour analysis, ported from the iPhone app's ImageSignals: measures how much
  * of the lower frame reads as water and how much of the frame is vegetation.
- * Used when OpenAI can't be reached, and for guests (who have no account to
- * spend the OpenAI key with). A transparent heuristic, not a trained model.
+ * Used only when OpenAI can't be reached, as in the app. A transparent
+ * heuristic, not a trained model.
  */
 export async function analyzeOnDevice(photo: Blob, town: string): Promise<Analysis> {
   const bitmap = await createImageBitmap(photo);

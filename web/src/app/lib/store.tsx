@@ -23,6 +23,8 @@ interface Store {
   nearby: (radius?: number) => Hazard[];
   refreshHazards: () => Promise<void>;
   report: (h: Omit<Hazard, "id" | "shared" | "createdAt" | "updatedAt" | "status" | "upvotes">) => Promise<Hazard>;
+  /** Files a report that only exists in this browser with the public works relay. Returns the ticket. */
+  relay: (h: Hazard) => Promise<string>;
   voteNotThere: (h: Hazard) => Promise<boolean>;
   remove: (h: Hazard) => Promise<void>;
   setStatus: (h: Hazard, s: ReportStatus) => Promise<void>;
@@ -223,6 +225,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return h;
   };
 
+  const relay: Store["relay"] = async h => {
+    if (!session) throw new Error("Sign in to send reports.");
+    const filed = await report({ reportType: h.reportType, severity: h.severity, roadStatus: h.roadStatus,
+      utilityLinesInvolved: h.utilityLinesInvolved, details: h.details, latitude: h.latitude, longitude: h.longitude,
+      municipality: h.municipality, photoURL: h.photoURL });
+    setLocal(l => l.filter(x => x.id !== h.id));
+    return filed.id;
+  };
+
   // Votes count only from within 1 mile, so take a fresh, real fix — never the
   // demo-area stand-in the map uses when location is off.
   const voteNotThere = async (h: Hazard) => {
@@ -302,7 +313,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const value: Store = {
     account, authReady, session, enterGuest, signOut,
-    hazards, nearby, refreshHazards, report, voteNotThere, remove, setStatus, confirmHazard,
+    hazards, nearby, refreshHazards, report, relay, voteNotThere, remove, setStatus, confirmHazard,
     location, realLocation, locationMode, locationText, settings, updateSettings,
     stations, gaugesUpdated, gaugesError, refreshGauges, liveAlerts,
     simulating, setSimulating, resetDemo,

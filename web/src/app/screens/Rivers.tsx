@@ -59,7 +59,7 @@ export function RiversScreen() {
           <div className="card tight row small" style={{ color: simulating || gaugesError ? "var(--orange)" : "var(--teal)" }}>
             {simulating ? <><TriangleAlert size={14} /> Simulated nor'easter levels, not live USGS data.</>
               : gaugesError ? <>{gaugesError}</>
-              : gaugesUpdated ? <><Radio size={14} /> Live gage heights, updated just now.</> : <>Loading live gage heights…</>}
+              : gaugesUpdated ? <><Radio size={14} /> Live gage heights, updated just now.</> : <><div className="spinner" style={{ width: 14, height: 14 }} /> Polling USGS Water Services…</>}
           </div>
           {stations.map(s => {
             const a = gaugeAlert(s), color = gaugeColor[a];
@@ -121,7 +121,7 @@ export function StationDetail({ siteID, pushed = false }: { siteID: string; push
             <Marker position={[s.latitude, s.longitude]} icon={gaugePin(gaugeColor[a])} />
           </MapContainer>
         </div>
-        <p className="group-foot">Gage height comes from the USGS Water Services instantaneous-values API (parameter 00065). Action and flood thresholds in this build are demo values and must be replaced with official NWS flood stages before real use.</p>
+        <p className="group-foot">Gage height comes from the USGS Water Services instantaneous-values API (parameter 00065). Action and flood thresholds in this build are demo values and must be replaced with official NWS AHPS stages before real use.</p>
       </div>
     </>
   );

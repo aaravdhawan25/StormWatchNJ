@@ -4,6 +4,7 @@ import { NavBar, useNav } from "../components/ui";
 import { FEMA_TEXT_NUMBER, HISTORY_DAYS, SHELTER_RADIUS_MILES, alertColor, fetchAlertHistory, fetchLiveAlerts, fetchShelters,
          reverseGeocode, zipToPoint, type FloodAlert, type Shelter } from "../lib/publicData";
 import { useStore } from "../lib/store";
+import { canCallAndText } from "../lib/device";
 
 /** Which place a lookup is about: where you are, or a ZIP typed in. */
 function useArea() {
@@ -115,6 +116,7 @@ function AlertDetail({ alert }: { alert: FloodAlert }) {
 
 export function ShelterScreen() {
   const area = useArea();
+  const nav = useNav();
   const [shelters, setShelters] = useState<Shelter[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const load = (p: { latitude: number; longitude: number }) => {
@@ -160,8 +162,10 @@ export function ShelterScreen() {
           <b className="row rounded"><MessageSquare size={17} /> Ask FEMA by text</b>
           <span className="small muted">FEMA replies with the nearest open shelters. It works without a data connection.</span>
           <a className={`btn primary ${validZip ? "" : "disabled"}`} style={{ textDecoration: "none", opacity: validZip ? 1 : 0.45, pointerEvents: validZip ? "auto" : "none" }}
-             href={`sms:${FEMA_TEXT_NUMBER}&body=SHELTER%20${area.zip}`}>{validZip ? `Text “SHELTER ${area.zip}” to ${FEMA_TEXT_NUMBER}` : "Enter a ZIP code above"}</a>
-          <span className="caption" style={{ margin: 0 }}>Opens Messages with the text written; you tap send. On a computer, text it from your phone. Message and data rates may apply.</span>
+             href={`sms:${FEMA_TEXT_NUMBER}&body=SHELTER%20${area.zip}`}
+             onClick={e => { if (!canCallAndText()) { e.preventDefault();
+               nav.dialog({ title: "Can't send texts from this device", message: `From a phone, text SHELTER ${area.zip} to ${FEMA_TEXT_NUMBER}.`, actions: [{ label: "OK" }] }); } }}>{validZip ? `Text “SHELTER ${area.zip}” to ${FEMA_TEXT_NUMBER}` : "Enter a ZIP code above"}</a>
+          <span className="caption" style={{ margin: 0 }}>Opens Messages with the text written; you tap send. Message and data rates may apply.</span>
         </div>
         <p className="caption">In immediate danger, call 911. Follow evacuation orders from local officials — they are the final word on which shelters are open.</p>
       </div></div>

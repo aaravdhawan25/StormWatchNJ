@@ -69,7 +69,7 @@ struct LifeSafetyBanner: View {
 
     private func callButton(title: String, number: String, url: URL, prominent: Bool) -> some View {
         Button {
-            open(url, label: title.replacingOccurrences(of: "Call ", with: ""), number: number)
+            open(url, label: number == "911" ? "emergency services" : title.replacingOccurrences(of: "Call ", with: ""), number: number)
         } label: {
             Label(title, systemImage: "phone.fill")
                 .font(.footnote.weight(.bold))

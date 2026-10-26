@@ -69,10 +69,12 @@ Settings tells iPhone visitors to do it.
 
 ## Differences from the iPhone app
 
+Every screen, button and message matches the app. The only differences are what a browser can't do the same way:
+
 | | iPhone app | Web version |
 | --- | --- | --- |
 | Without an account | Not allowed | **Try the demo without an account** — sample hazards, live public data, and the shared map read-only. Guests' reports stay in their browser. |
-| Photo analysis | OpenAI, on-device fallback | Same; guests get the in-browser colour analysis, since OpenAI calls require an account |
+| Photo analysis | OpenAI, on-device fallback | Same OpenAI analysis for everyone, guests included. Guests are limited to 10 photos an hour each and 300 a day in total (`migrations/0006_guest_triage_limit.sql`) so strangers can't run up the OpenAI bill |
 | Camera | Live camera or photo library | Same, through the browser |
 | Notifications | Also in the background | While the site is open or installed; on iPhone, only once added to the Home Screen |
 | Maps | Apple Maps | OpenStreetMap |

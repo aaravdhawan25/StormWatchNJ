@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import L from "leaflet";
-import { BadgeCheck, CircleCheck, EyeOff, MessageSquare, Globe, ThumbsUp, Trash2, Users } from "lucide-react";
+import { BadgeCheck, Building2, CircleCheck, EyeOff, MessageSquare, Globe, ThumbsUp, Trash2, Users } from "lucide-react";
 import { HazardGlyph, NavBar, SeverityBadge, hazardIcon, useNav } from "../components/ui";
 import { LifeSafetyBanner } from "../components/LifeSafety";
 import type { Hazard, ReportStatus } from "../lib/models";
@@ -21,6 +21,7 @@ export function HazardDetail({ hazardId, pushed = false }: { hazardId: string; p
   const store = useStore();
   const nav = useNav();
   const [busy, setBusy] = useState(false);
+  const [forwarding, setForwarding] = useState(false);
   const h = store.hazards.find(x => x.id === hazardId);
   const close = () => (pushed ? nav.pop() : nav.dismiss());
   if (!h) return <div className="scroll"><p className="muted" style={{ textAlign: "center", marginTop: 60 }}>This hazard is no longer on the map.</p></div>;
@@ -84,15 +85,22 @@ export function HazardDetail({ hazardId, pushed = false }: { hazardId: string; p
           </div>
           <div className="group-foot">Opens Nextdoor's post composer with the details filled in. You review it and post there — nothing is sent automatically, and the photo is not included.</div>
 
-          {h.shared && (
-            <>
-              <div className="group">
-                <div className="cell" style={{ color: "var(--teal)" }}><BadgeCheck size={18} /> Filed with the public works relay</div>
-                <div className="cell"><span>Ticket</span><span className="val">{h.id.slice(0, 8)}</span></div>
-              </div>
-              <div className="group-foot">Filed over Open311. Towns that have opted in receive it at their public works desk; every report joins the open GIS feed. The photo is not sent.</div>
-            </>
-          )}
+          <div className="group">
+            {h.shared ? <>
+              <div className="cell" style={{ color: "var(--teal)" }}><BadgeCheck size={18} /> Filed with the public works relay</div>
+              <div className="cell"><span>Ticket</span><span className="val">{h.id.slice(0, 8)}</span></div>
+            </> : guest ? (
+              <div className="cell muted small"><Building2 size={18} /> Create an account to send reports to public works.</div>
+            ) : (
+              <button className="cell link" disabled={forwarding} onClick={() => {
+                setForwarding(true);
+                store.relay(h).then(id => { close(); nav.dialog({ title: "Sent to public works", message: `Ticket ${id.slice(0, 8)}. It's now on the shared map for everyone.`, actions: [{ label: "OK" }] }); })
+                  .catch(e => nav.dialog({ title: "Couldn't reach the relay", message: `${(e as Error).message} The report is still saved on this device.`, actions: [{ label: "OK" }] }))
+                  .finally(() => setForwarding(false));
+              }}><Building2 size={18} /> {forwarding ? "Sending…" : "Send to public works relay"}</button>
+            )}
+          </div>
+          <div className="group-foot">Files this report with the StormWatch backend over Open311. Towns that have opted in receive it at their public works desk; every report joins the open GIS feed. The photo is not sent.</div>
 
           {isLifeSafetyRisk(h.reportType, h.utilityLinesInvolved) && h.status !== "RESOLVED" && (
             <>
