@@ -2,7 +2,7 @@ import CoreLocation
 import MapKit
 import SwiftUI
 
-/// Which place a safety lookup is about: where the phone is, or a ZIP typed in.
+// which place a safety lookup is about
 @MainActor
 final class LookupArea: ObservableObject {
     @Published var zip = ""
@@ -10,7 +10,7 @@ final class LookupArea: ObservableObject {
     @Published private(set) var message: String?
     @Published private(set) var isResolving = false
 
-    /// Starts from the map location and works out its ZIP code.
+    // starts from the map location and works out its ZIP code
     func useLocation(_ location: CLLocationCoordinate2D) async {
         coordinate = location
         message = nil
@@ -19,8 +19,7 @@ final class LookupArea: ObservableObject {
         }
     }
 
-    /// Moves the lookup to the ZIP in the field. Returns false if it is not a
-    /// New Jersey ZIP that can be placed on the map.
+    // moves the lookup to the ZIP in the field
     func useTypedZIP() async -> Bool {
         isResolving = true
         defer { isResolving = false }
@@ -34,7 +33,7 @@ final class LookupArea: ObservableObject {
     }
 }
 
-/// ZIP entry shared by the alert and shelter screens.
+// ZIP entry shared by the alert and shelter screens
 struct AreaBar: View {
     @ObservedObject var area: LookupArea
     var onChange: () -> Void
@@ -301,8 +300,7 @@ struct ShelterScreen: View {
 
     private func reload() { Task { await load() } }
 
-    /// Debug builds accept `-shelterTestPoint "lat,lon"` so the list can be checked
-    /// against wherever FEMA has shelters open; there are rarely any near New Jersey.
+    // debug: -shelterTestPoint "lat,lon"
     private static var debugPoint: CLLocationCoordinate2D? {
         #if DEBUG
         guard let raw = UserDefaults.standard.string(forKey: "shelterTestPoint") else { return nil }

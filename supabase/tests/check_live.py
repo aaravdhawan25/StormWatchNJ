@@ -1,13 +1,4 @@
-"""Live checks against the deployed Supabase backend.
-
-Needs two confirmed resident accounts that share a password. Create them in the
-Supabase dashboard (Authentication > Users > Add user, with "Auto Confirm User"
-on) so no email is sent, then:
-
-    SW_REPORTER=a@example.com SW_VOTER=b@example.com SW_PASSWORD=... python3 supabase/tests/check_live.py
-
-It files one hazard and removes it again. Delete the two accounts afterwards.
-"""
+"""live checks against the deployed Supabase backend"""
 import json, os, sys, urllib.request, urllib.parse, urllib.error
 REPORTER, VOTER, PASSWORD = os.environ["SW_REPORTER"], os.environ["SW_VOTER"], os.environ["SW_PASSWORD"]
 U = "https://yvmmtuqwjvztvxwpmfwf.supabase.co"; K = "sb_publishable_J48JNj6IRTzpzwkBsgM_MQ_NmERLY1v"
@@ -91,7 +82,7 @@ check("GeoJSON feed public", s == 200 and "geo+json" in ct and d["type"] == "Fea
 f = d["features"][0]; check("lon-first, 2 confirmations", f["geometry"]["coordinates"] == [-74.5893, 40.3318] and f["properties"]["confirmations"] == 2, f)
 blob = json.dumps(d); check("no reporter data in feed", "someone@example.com" not in blob and "5551234567" not in blob and "owner" not in blob and REPORTER.lower() not in blob)
 
-# Voters must be within 1 mile of the hazard (at 40.3318, -74.5893).
+# voters must be within 1 mile of the hazard (at 40.3318, -74.5893)
 NEAR = {"p_latitude": 40.335, "p_longitude": -74.59}
 FAR = {"p_latitude": 40.40, "p_longitude": -74.50}
 

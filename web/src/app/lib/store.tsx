@@ -23,7 +23,7 @@ interface Store {
   nearby: (radius?: number) => Hazard[];
   refreshHazards: () => Promise<void>;
   report: (h: Omit<Hazard, "id" | "shared" | "createdAt" | "updatedAt" | "status" | "upvotes">) => Promise<Hazard>;
-  /** Files a report that only exists in this browser with the public works relay. Returns the ticket. */
+  // files a report that only exists in this browser with the public works relay
   relay: (h: Hazard) => Promise<string>;
   voteNotThere: (h: Hazard) => Promise<boolean>;
   remove: (h: Hazard) => Promise<void>;
@@ -31,7 +31,7 @@ interface Store {
   confirmHazard: (h: Hazard) => void;
 
   location: { latitude: number; longitude: number };
-  /** The browser's actual position, inside New Jersey or not. Null until a real fix. */
+  // the browser's actual position, inside New Jersey or not
   realLocation: { latitude: number; longitude: number } | null;
   locationMode: LocationMode;
   locationText: string;
@@ -69,8 +69,7 @@ function loadLocal(): Hazard[] {
   } catch { return seedHazards(); }
 }
 
-// Rows from the database and the GeoJSON feed.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// rows from the database and the GeoJSON feed
 type Row = any;
 
 function fromServer(r: Row): Hazard {
@@ -160,7 +159,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const { data } = await supabase.rpc("list_hazards");
       if (data) { synced.current = true; setShared((data as Row[]).map(fromServer)); }
     } else if (guest) {
-      // Guests read the same shared hazards through the public GIS feed.
+      // guests read the same shared hazards through the public GIS feed
       try {
         const feed = await (await fetch(functionURL("hazard-feed"))).json();
         synced.current = true;
@@ -171,8 +170,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [session, guest]);
   useEffect(() => { refreshHazards(); }, [refreshHazards]);
 
-  // Check for changes every minute while the app is open (the iPhone app does
-  // this in the background as well).
+  // check for changes every minute while the app is open
   useEffect(() => {
     if (!session && !guest) return;
     const timer = setInterval(refreshHazards, 60_000);
@@ -181,7 +179,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const accountId = session?.user.id ?? (guest ? "guest" : null);
   useEffect(() => {
-    // Only compare real downloads, never the empty list the app starts with.
+    // only compare real downloads, never the empty list the app starts with
     if (accountId && synced.current) processHazards(shared, accountId, location, settings.radiusMiles, loadPrefs());
   }, [shared]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -217,7 +215,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await refreshHazards();
       return hazards.find(h => h.id === id) ?? { ...draft, id, shared: true, isMine: true, status: "ACTIVE", upvotes: 1, createdAt: now, updatedAt: now };
     }
-    // Guests: kept in this browser only.
+    // guests: kept in this browser only
     const h: Hazard = { ...draft, id: `local-${Date.now()}`, shared: false, isMine: true, status: "ACTIVE", upvotes: 1,
                         createdAt: now, updatedAt: now, address: place?.line, zipcode: place?.zip };
     if (draft.photoURL) photos.current.set(h.id, draft.photoURL);
@@ -234,8 +232,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return filed.id;
   };
 
-  // Votes count only from within 1 mile, so take a fresh, real fix — never the
-  // demo-area stand-in the map uses when location is off.
+  // votes count only from within 1 mile
   const voteNotThere = async (h: Hazard) => {
     const here = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
       if (!navigator.geolocation) return reject(new Error("This browser can't share your location, which voting needs."));

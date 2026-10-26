@@ -2,12 +2,12 @@ import CoreLocation
 import Foundation
 import SwiftUI
 
-/// One flood alert, from either source.
+// one flood alert, from either source
 struct FloodAlert: Identifiable, Hashable {
     enum Source: String {
-        /// Live from the National Weather Service — in effect right now.
+        // live from the National Weather Service, in effect right now
         case live
-        /// From FEMA's IPAWS archive — already at least a day old.
+        // from FEMA's IPAWS archive, already at least a day old
         case archive
     }
 
@@ -31,7 +31,7 @@ struct FloodAlert: Identifiable, Hashable {
         }
     }
 
-    /// White text is unreadable on the yellow used for minor alerts.
+    // white text is unreadable on the yellow used for minor alerts
     var textOnTint: Color {
         switch severity.lowercased() {
         case "extreme", "severe", "moderate": return .white
@@ -40,19 +40,7 @@ struct FloodAlert: Identifiable, Hashable {
     }
 }
 
-/// Flood alerts for one place, from two federal sources that answer different
-/// questions:
-///
-/// * **National Weather Service** (`api.weather.gov`) — what is in effect *now*.
-///   NWS is the agency that issues flood watches and warnings.
-/// * **FEMA OpenFEMA, IPAWS Archived Alerts** — what was issued here recently.
-///   FEMA publishes this dataset with a deliberate 24-hour delay, "to reduce
-///   confusion with live alerts", so on its own it can never show a current
-///   warning. It is shown as history and labelled that way.
-///
-/// The FEMA query matches alerts whose drawn area contains the point. Flood
-/// *warnings* carry such a polygon; flood *watches* are issued by forecast zone
-/// with no polygon and so do not appear in the FEMA list. They do appear live.
+// flood alerts from NWS (now) and FEMA (past)
 @MainActor
 final class FloodAlertService: ObservableObject {
     @Published private(set) var active: [FloodAlert] = []
@@ -62,7 +50,7 @@ final class FloodAlertService: ObservableObject {
     @Published private(set) var archiveError: String?
     @Published private(set) var lastChecked: Date?
 
-    /// How far back the FEMA history looks.
+    // how far back the FEMA history looks
     static let historyDays = 90
 
     func load(at coordinate: CLLocationCoordinate2D) async {
@@ -84,8 +72,7 @@ final class FloodAlertService: ObservableObject {
         lastChecked = Date()
     }
 
-    /// Debug builds accept `-alertTestPoint "lat,lon"` so the live path can be
-    /// exercised against wherever a flood alert happens to be in effect.
+    // debug: -alertTestPoint "lat,lon"
     private static var debugPoint: CLLocationCoordinate2D? {
         #if DEBUG
         guard let raw = UserDefaults.standard.string(forKey: "alertTestPoint") else { return nil }
@@ -111,7 +98,7 @@ final class FloodAlertService: ObservableObject {
         components.queryItems = [URLQueryItem(name: "point", value: String(format: "%.4f,%.4f", point.latitude, point.longitude))]
         var request = URLRequest(url: components.url!)
         request.timeoutInterval = 20
-        // NWS asks every client to identify itself.
+        // NWS asks every client to identify itself
         request.setValue("StormWatchNJ/1.0 (iOS; civic storm hazard map)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/geo+json", forHTTPHeaderField: "Accept")
 
@@ -135,8 +122,7 @@ final class FloodAlertService: ObservableObject {
                                   area: (p["areaDesc"] as? String) ?? "",
                                   sender: (p["senderName"] as? String) ?? "National Weather Service",
                                   sent: date(p["sent"]),
-                                  // `ends` is when the flooding is expected to end;
-                                  // `expires` is only when this message goes stale.
+                                  // `ends` is when the flooding is expected to end
                                   expires: date(p["ends"]) ?? date(p["expires"]),
                                   details: (p["description"] as? String) ?? "",
                                   instruction: (p["instruction"] as? String) ?? "")

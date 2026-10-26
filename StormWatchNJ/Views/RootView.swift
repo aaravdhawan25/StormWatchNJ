@@ -12,8 +12,7 @@ struct RootView: View {
 
     @State private var selectedTab = RootView.initialTab
 
-    /// Debug builds accept `-startTab <n>` so a screenshot pass can open a given
-    /// tab directly. Release builds always start on the map.
+    // debug: -startTab <n>
     static var initialTab: Int {
         #if DEBUG
         let requested = UserDefaults.standard.integer(forKey: "startTab")
@@ -25,9 +24,7 @@ struct RootView: View {
 
     private var isTownship: Bool { account.account?.isTownship == true }
 
-    /// iPhone shows five tabs before collapsing the rest under "More", so township
-    /// staff get the DPW console in place of the Nearby list. The console's queue
-    /// is their list: every open hazard, worst first.
+    // iPhone shows five tabs before collapsing the rest under "More"
     var body: some View {
         TabView(selection: $selectedTab) {
             MapScreen()
@@ -56,8 +53,7 @@ struct RootView: View {
                 .tag(4)
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
         }
-        // The role can change while the app is open (it is re-read from the
-        // server), so never leave someone on a tab they no longer have.
+        // the role can change while the app is open
         .onChange(of: isTownship) { _, township in
             if township, selectedTab == 1 { selectedTab = 5 }
             if !township, selectedTab == 5 { selectedTab = 1 }
@@ -70,8 +66,7 @@ struct RootView: View {
             location.requestPermission()
             location.startUpdates()
             notifications.updateArea(location.coordinate, radiusMiles: settings.searchRadiusMiles)
-            // Asked here, once signed in and looking at the map, rather than on
-            // first launch before the app has shown what it is for.
+            // ask for notifications once signed in
             if notifications.authorization == .notDetermined { await notifications.requestPermission() }
             await HazardSync.pull(into: store, account: account)
             await usgs.refresh()
@@ -81,7 +76,7 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
-                // Someone else may have removed or voted on a hazard while the app was away.
+                // someone else may have removed or voted on a hazard while the app was away
                 Task {
                     await notifications.refreshAuthorization()
                     await HazardSync.pull(into: store, account: account)
@@ -100,7 +95,7 @@ struct RootView: View {
         }
         .onChange(of: notifications.pendingTab) { _, tab in
             guard let tab else { return }
-            // Hazard notifications point at the list; for staff that is the console.
+            // hazard notifications point at the list; for staff that is the console
             selectedTab = (tab == 1 && isTownship) ? 5 : tab
             notifications.pendingTab = nil
         }

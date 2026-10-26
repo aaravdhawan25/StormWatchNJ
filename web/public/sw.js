@@ -1,5 +1,4 @@
-// StormWatch NJ service worker. It does one job: show notifications and, when
-// one is tapped, bring the app forward on the right tab. Nothing is cached.
+// StormWatch NJ service worker
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", event => event.waitUntil(self.clients.claim()));
 

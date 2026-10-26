@@ -2,11 +2,7 @@ import type { Hazard } from "./models";
 import { hazardLabel, milesBetween } from "./models";
 import type { FloodAlert } from "./publicData";
 
-// The iPhone app's notification rules, for the browser. Three kinds: a flood
-// alert where you are; an impassable hazard or downed wire inside your radius;
-// a change to a report you filed. The browser shows them while the site is
-// open (including in a background tab). On iPhone, Safari only allows web
-// notifications for sites added to the Home Screen.
+// the iPhone app's notification rules, for the browser
 
 export interface NotifyPrefs { flood: boolean; nearby: boolean; mine: boolean }
 interface State { account?: string; known: string[]; mine: Record<string, string>; alerts: string[] }
@@ -40,14 +36,14 @@ async function send(id: string, title: string, body: string, tab: "nearby" | "al
   n.onclick = () => { window.focus(); window.dispatchEvent(new CustomEvent("stormwatch-open-tab", { detail: tab })); };
 }
 
-/** Compares the shared hazard list with the last one seen. */
+// compares the shared hazard list with the last one seen
 export function processHazards(shared: Hazard[], accountId: string, here: { latitude: number; longitude: number },
                                radius: number, prefs: NotifyPrefs) {
   const state = load();
   const ids = shared.map(h => h.id);
   const mine = Object.fromEntries(shared.filter(h => h.isMine).map(h => [h.id, h.status]));
 
-  // First look for this account in this browser: remember the map, announce nothing.
+  // first look for this account in this browser
   if (state.account !== accountId) { save({ ...state, account: accountId, known: ids, mine }); return; }
 
   if (prefs.nearby) {
@@ -74,7 +70,7 @@ export function processHazards(shared: Hazard[], accountId: string, here: { lati
   save({ ...state, known: ids, mine });
 }
 
-/** Call when the person removes their own report, so they aren't told it "came off the map". */
+// call when the person removes their own report
 export function forgetMine(id: string) {
   const s = load(); delete s.mine[id]; save(s);
 }

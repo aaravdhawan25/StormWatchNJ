@@ -49,8 +49,7 @@ struct HazardListScreen: View {
                                 HazardCard(report: report,
                                            distanceMiles: store.distanceMiles(to: report, from: location.coordinate),
                                            thumbnail: store.photo(for: report))
-                                // Invisible link keeps the card's own styling while
-                                // still giving push navigation and accessibility.
+                                // invisible link so the card keeps its style
                                 NavigationLink {
                                     HazardDetailView(report: report)
                                 } label: { EmptyView() }

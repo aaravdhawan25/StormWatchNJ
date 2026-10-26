@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate StormWatchNJ.xcodeproj/project.pbxproj from the files on disk.
-
-The project was authored without Xcode available, so the pbxproj is generated
-rather than hand-maintained. Run this after adding or removing a source file:
-
-    python3 Tools/generate_xcodeproj.py
-
-Object IDs are md5-derived from each path, so regenerating produces a stable
-file and a readable diff.
-"""
+"""regenerate StormWatchNJ.xcodeproj/project.pbxproj from the files on disk"""
 
 import hashlib
 import os
@@ -26,7 +17,7 @@ def oid(*parts):
 
 
 def collect():
-    """Returns (root_swift_files, {group: [swift files]})."""
+    """returns (root_swift_files, {group: [swift files]})"""
     app_dir = os.path.join(ROOT, APP)
     root_files = sorted(
         f for f in os.listdir(app_dir)
@@ -44,7 +35,7 @@ def collect():
 def main():
     root_files, groups = collect()
 
-    # Every compiled source, as (display name, path relative to the app group).
+    # every compiled source
     sources = [(f, f) for f in root_files]
     for group, files in groups.items():
         sources.extend((f, "%s/%s" % (group, f)) for f in files)
@@ -85,7 +76,7 @@ def main():
         % (assets_build, assets_ref)
     )
 
-    # Groups
+    # groups
     group_blocks = []
     app_children = []
     for name in root_files:

@@ -1,9 +1,6 @@
 import Foundation
 
-/// Seed and simulation content.
-///
-/// Every report here is fictional demo data for testing and for the submission
-/// video — it is not a record of a real incident.
+// seed and simulation content
 enum DemoData {
     static func seedReports() -> [HazardReport] {
         let now = Date()
@@ -83,8 +80,7 @@ enum DemoData {
         ]
     }
 
-    /// Extra reports layered on by the "Simulate Nor'easter" toggle so the map,
-    /// alert banner and DPW export all have something to show on a clear day.
+    // extra reports for the simulate nor'easter toggle
     static func stormSurgeReports() -> [HazardReport] {
         let now = Date()
         let surge: [(HazardType, Severity, RoadStatus, Bool, String, Double, Double, String)] = [

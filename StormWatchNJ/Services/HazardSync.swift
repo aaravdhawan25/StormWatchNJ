@@ -1,7 +1,7 @@
 import CoreLocation
 import Foundation
 
-/// A hazard as the shared database describes it.
+// a hazard as the shared database describes it
 struct ServerHazard: Decodable {
     let id: String
     let report_type: String
@@ -22,8 +22,7 @@ struct ServerHazard: Decodable {
     let i_voted_not_there: Bool
     let is_mine: Bool
 
-    /// Copies the server's view onto a report this device already has, keeping
-    /// what only the device knows — its local id and its photo.
+    // update a local report from the server copy
     func apply(to report: inout HazardReport) {
         report.status = ReportStatus(rawValue: status) ?? report.status
         report.upvotes = max(report.upvotes, upvotes)
@@ -34,15 +33,14 @@ struct ServerHazard: Decodable {
         report.iVotedNotThere = i_voted_not_there
     }
 
-    /// Postgres timestamps carry fractional seconds, which the plain ISO 8601
-    /// parser rejects, so try that form first.
+    // Postgres timestamps have fractional seconds
     private static func date(_ text: String) -> Date {
         let fractional = ISO8601DateFormatter()
         fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return fractional.date(from: text) ?? ISO8601DateFormatter().date(from: text) ?? Date()
     }
 
-    /// A report first seen from the server, i.e. posted from someone else's phone.
+    // a report first seen from the server, i.e. posted from someone else's phone
     func makeReport() -> HazardReport? {
         guard let type = HazardType(rawValue: report_type) else { return nil }
         var report = HazardReport(id: UUID(uuidString: id) ?? UUID(),
@@ -65,11 +63,10 @@ struct ServerHazard: Decodable {
     }
 }
 
-/// Pulls the shared hazard list and applies removal decisions made on the server.
+// pulls the shared hazard list and applies removal decisions made on the server
 @MainActor
 enum HazardSync {
-    /// Quietly does nothing when signed out or offline — the app is meant to
-    /// keep working from its local store.
+    // does nothing when signed out or offline
     static func pull(into store: HazardStore, account: AccountStore) async {
         guard let api = await account.authorizedAPI(),
               let hazards: [ServerHazard] = try? await api.send("POST", "rest/v1/rpc/list_hazards", body: [:]) else { return }
@@ -85,9 +82,7 @@ enum HazardSync {
 
     private static let signedOut = APIError.server(status: 401, detail: "Sign in to do that.", code: nil)
 
-    /// Records "it's not there". Returns true if that vote removed the hazard.
-    /// `from` is the device's real position; the server only counts votes made
-    /// within 1 mile of the hazard.
+    // records "it's not there"
     static func voteNotThere(_ report: HazardReport, from position: CLLocationCoordinate2D?,
                              store: HazardStore, account: AccountStore) async throws -> Bool {
         guard let api = await account.authorizedAPI(), let ticket = report.relayTicketID else { throw signedOut }
@@ -106,7 +101,7 @@ enum HazardSync {
         do {
             let _: BackendAPI.Empty = try await api.send("POST", "rest/v1/rpc/remove_hazard", body: ["p_hazard": ticket])
         } catch let error as APIError where error.code == "P0002" {
-            // Already gone on the server; fall through and drop the local copy.
+            // already gone on the server; fall through and drop the local copy
         }
         AppServices.shared.notifications.forgetMyReport(ticket)
         store.delete(report)

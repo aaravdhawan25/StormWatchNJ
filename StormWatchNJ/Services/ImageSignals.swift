@@ -2,22 +2,15 @@ import CoreGraphics
 import Foundation
 import UIKit
 
-/// Cheap colour/texture measurements taken from a downsampled copy of the photo.
-///
-/// Apple's scene classifier has no "flood", "puddle" or "downed wire" label, so on
-/// its own it cannot tell standing water from a normal street. These signals give
-/// the triage engine a second, independent line of evidence, and they are shown to
-/// the resident so the reasoning is inspectable rather than a black box.
+// cheap colour/texture measurements taken from a downsampled copy of the photo
 struct ImageSignals: Equatable {
-    /// Weighted fraction of the lower frame that reads as water. Blue-tinted and
-    /// silty-brown pixels count fully; flat neutral grey counts only partially,
-    /// because dry asphalt is grey too and would otherwise read as a flood.
+    // weighted fraction of the lower frame that reads as water
     var waterCoverage: Double
-    /// Fraction of the frame that reads as vegetation.
+    // fraction of the frame that reads as vegetation
     var foliageCoverage: Double
-    /// 0 = bright clear sky, 1 = dark overcast. Storm photos sit high.
+    // 0 = bright clear sky, 1 = dark overcast
     var skyDarkness: Double
-    /// Mean saturation over the whole frame; wet, overcast scenes are washed out.
+    // mean saturation over the whole frame
     var meanSaturation: Double
 
     static let neutral = ImageSignals(waterCoverage: 0, foliageCoverage: 0,
@@ -25,8 +18,7 @@ struct ImageSignals: Equatable {
 }
 
 enum ImageSignalExtractor {
-    /// Side length of the working copy. 64x64 is enough for colour statistics and
-    /// keeps the whole pass well under a millisecond.
+    // side length of the working copy
     private static let grid = 64
 
     static func signals(from image: UIImage) -> ImageSignals {
@@ -49,7 +41,7 @@ enum ImageSignalExtractor {
 
                 saturationTotal += saturation
 
-                // Top quarter of the frame is treated as sky.
+                // top quarter of the frame is treated as sky
                 if y < grid / 4 {
                     skyLuminanceTotal += 0.299 * r + 0.587 * g + 0.114 * b
                     skyCount += 1
@@ -59,7 +51,7 @@ enum ImageSignalExtractor {
                     foliageHits += 1
                 }
 
-                // Water is only meaningful below the horizon.
+                // water is only meaningful below the horizon
                 if y >= grid * 2 / 5 {
                     lowerCount += 1
                     waterWeightTotal += waterWeight(hue: hue, saturation: saturation, brightness: brightness)
@@ -76,17 +68,14 @@ enum ImageSignalExtractor {
         )
     }
 
-    /// How strongly one pixel reads as standing water.
-    ///
-    /// Measured on rendered test scenes: a flooded roadway scores ~0.85 and a dry
-    /// asphalt road ~0.14, which is the separation the hazard scoring relies on.
+    // how strongly one pixel reads as standing water
     private static func waterWeight(hue: Double, saturation: Double, brightness: Double) -> Double {
         guard brightness > 0.08, brightness < 0.82 else { return 0 }
-        // Blue-tinted standing water.
+        // blue-tinted standing water
         if saturation >= 0.06, saturation < 0.42, hue >= 170, hue <= 260 { return 1 }
-        // Silty brown floodwater.
+        // silty brown floodwater
         if saturation >= 0.12, saturation < 0.55, hue >= 15, hue <= 50, brightness < 0.62 { return 1 }
-        // Flat neutral grey: could be water, could be dry asphalt. Count it, but weakly.
+        // flat neutral grey: could be water, could be dry asphalt
         if saturation < 0.06 { return 0.35 }
         return 0
     }

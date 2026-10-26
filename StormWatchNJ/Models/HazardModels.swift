@@ -2,7 +2,7 @@ import CoreLocation
 import Foundation
 import SwiftUI
 
-/// Mirrors the `report_type` column in the PostGIS `hazard_reports` table.
+// mirrors the `report_type` column in the PostGIS `hazard_reports` table
 enum HazardType: String, Codable, CaseIterable, Identifiable {
     case cloggedDrain = "CLOGGED_DRAIN"
     case streetFlooding = "STREET_FLOODING"
@@ -22,7 +22,7 @@ enum HazardType: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// Compact name for filter chips, where the full label does not fit.
+    // compact name for filter chips, where the full label does not fit
     var shortLabel: String {
         switch self {
         case .cloggedDrain: return "Drains"
@@ -67,7 +67,7 @@ enum Severity: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// Ranking used when sorting a mixed list of reports.
+    // ranking used when sorting a mixed list of reports
     var weight: Int {
         switch self {
         case .low: return 0
@@ -109,8 +109,7 @@ enum ReportStatus: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// One crowdsourced, AI-triaged hazard. Field-for-field equivalent of a row in
-/// the `hazard_reports` table from the project blueprint.
+// one crowdsourced, AI-triaged hazard
 struct HazardReport: Identifiable, Codable, Hashable {
     var id: UUID = UUID()
     var reportType: HazardType
@@ -118,8 +117,7 @@ struct HazardReport: Identifiable, Codable, Hashable {
     var roadStatus: RoadStatus
     var utilityLinesInvolved: Bool
     var details: String
-    /// File name inside the app's `photos/` directory, not a full path, so the
-    /// store survives the container path changing between simulator launches.
+    // file name inside the app's `photos/` directory, not a full path
     var photoFilename: String?
     var latitude: Double
     var longitude: Double
@@ -128,18 +126,17 @@ struct HazardReport: Identifiable, Codable, Hashable {
     var upvotes: Int = 1
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
-    /// Street address from reverse geocoding, filled in shortly after posting.
+    // street address from reverse geocoding, filled in shortly after posting
     var address: String?
     var postalCode: String?
-    /// Ticket id from the municipal relay, once the report has been forwarded.
+    // ticket id from the municipal relay, once the report has been forwarded
     var relayTicketID: String?
-    /// Server-side facts, present only for reports in the shared database.
-    /// Optional so reports saved by older builds still decode.
+    // server-side facts, present only for reports in the shared database
     var isMine: Bool?
     var notThereVotes: Int?
     var iVotedNotThere: Bool?
 
-    /// Whether this report lives in the shared database rather than only here.
+    // whether this report lives in the shared database rather than only here
     var isShared: Bool { relayTicketID != nil }
 
     var coordinate: CLLocationCoordinate2D {

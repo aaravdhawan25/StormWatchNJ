@@ -24,7 +24,7 @@ struct HazardDetailView: View {
             && UtilityHandoff.isLifeSafetyRisk(type: current.reportType, utilityLines: current.utilityLinesInvolved)
     }
 
-    /// Read back from the store so upvotes and status changes show immediately.
+    // read back from the store so upvotes and status changes show immediately
     private var current: HazardReport {
         store.reports.first(where: { $0.id == report.id }) ?? report
     }
@@ -148,8 +148,7 @@ struct HazardDetailView: View {
                     Label("Confirm this hazard", systemImage: "hand.thumbsup.fill")
                 }
 
-                // Crew status is a township's call once a report is shared; a
-                // report that only exists on this device is this device's to edit.
+                // crew status is a township's call once a report is shared
                 if !current.isShared {
                     Picker("Crew status", selection: Binding(
                         get: { current.status },
@@ -193,7 +192,7 @@ struct HazardDetailView: View {
         }
     }
 
-    /// Whether this report has reached the municipal relay, and a way to send it.
+    // whether this report has reached the municipal relay
     @ViewBuilder
     private var publicWorksSection: some View {
         Section {
@@ -218,7 +217,7 @@ struct HazardDetailView: View {
         }
     }
 
-    /// How this hazard comes off the map, which depends on who is looking at it.
+    // how this hazard comes off the map
     @ViewBuilder
     private var removalSection: some View {
         let votes = current.notThereVotes ?? 0
@@ -274,12 +273,12 @@ struct HazardDetailView: View {
         }
     }
 
-    /// Mirror the server's rules, which are what actually decide removal.
+    // mirror the server's rules, which are what actually decide removal
     private static let votesToRemove = 3
     private static let voteRadiusMiles = 1.0
     private static let expiryNote = "Hazards also come off the map on their own 3 days after their last update."
 
-    /// How far the device really is from the hazard; nil without a real fix.
+    // how far the device really is from the hazard; nil without a real fix
     private var voteDistanceMiles: Double? {
         location.rawCoordinate.map { store.distanceMiles(to: current, from: $0) }
     }

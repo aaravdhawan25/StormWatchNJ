@@ -1,6 +1,6 @@
 import Foundation
 
-/// A failure talking to the backend, phrased for the person using the app.
+// a failure talking to the backend, phrased for the person using the app
 enum APIError: LocalizedError {
     case unreachable
     case server(status: Int, detail: String, code: String?)
@@ -25,13 +25,11 @@ enum APIError: LocalizedError {
     }
 }
 
-/// JSON client for Supabase: the auth service (`auth/v1`) and the database API
-/// (`rest/v1`). Every request carries the publishable key; signed-in requests
-/// also carry the user's access token.
+// JSON client for Supabase
 struct BackendAPI {
     var token: String?
 
-    /// Decodes from any JSON object, for calls whose reply does not matter.
+    // decodes from any JSON object, for calls whose reply does not matter
     struct Empty: Decodable {}
 
     func send<Response: Decodable>(_ method: String,
@@ -64,12 +62,11 @@ struct BackendAPI {
         guard (200..<300).contains(status) else {
             throw Self.failure(status: status, data: data)
         }
-        // Sign-out answers 204 with no body.
+        // sign-out answers 204 with no body
         return try JSONDecoder().decode(Response.self, from: data.isEmpty ? Data("{}".utf8) : data)
     }
 
-    /// The auth service and the database API report errors in different shapes;
-    /// this reads either and replaces the common ones with plain wording.
+    // the auth service and the database API report errors in different shapes
     private static func failure(status: Int, data: Data) -> APIError {
         let raw = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
         let code = (raw["error_code"] ?? raw["code"]) as? String

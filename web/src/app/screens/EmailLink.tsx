@@ -3,8 +3,7 @@ import { AppLogo, StormBackdrop } from "../components/ui";
 
 const onApple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-/** Where the confirmation email's link lands. Signed up on the iPhone app? It
- *  offers the way back there; signed up here? It carries on, signed in. */
+// where the confirmation email's link lands
 export function EmailLinkScreen({ ok, message, signedIn, onDone }:
   { ok: boolean; message?: string; signedIn: boolean; onDone: () => void }) {
   const expired = !ok && /expired|invalid/i.test(message ?? "expired");

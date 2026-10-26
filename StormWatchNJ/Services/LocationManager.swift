@@ -1,14 +1,14 @@
 import CoreLocation
 import Foundation
 
-/// New Jersey's bounding box, used to decide whether a real GPS fix is usable.
+// New Jersey's bounding box, used to decide whether a real GPS fix is usable
 enum NJServiceArea {
     static let minLatitude = 38.86
     static let maxLatitude = 41.40
     static let minLongitude = -75.61
     static let maxLongitude = -73.88
 
-    /// Plainsboro — roughly central to the seeded demo reports.
+    // Plainsboro, the center of the demo reports
     static let demoCenter = CLLocationCoordinate2D(latitude: 40.3318, longitude: -74.5893)
 
     static func contains(_ coordinate: CLLocationCoordinate2D) -> Bool {
@@ -17,35 +17,30 @@ enum NJServiceArea {
     }
 }
 
-/// How the app arrived at the coordinate it is currently using.
+// how the app arrived at the coordinate it is currently using
 enum LocationMode: Equatable {
-    /// A real fix, inside New Jersey.
+    // a real fix, inside New Jersey
     case live
-    /// Permission not answered yet.
+    // permission not answered yet
     case awaitingPermission
-    /// Permission granted, no fix yet.
+    // permission granted, no fix yet
     case awaitingFix
-    /// Permission refused.
+    // permission refused
     case denied
-    /// A real fix, but outside the service area — showing the NJ demo area instead.
+    // a real fix, but outside the service area, showing the NJ demo area instead
     case outsideServiceArea
 
     var usesDemoCenter: Bool { self != .live }
 }
 
-/// Wraps `CLLocationManager` so views can read a single published coordinate.
-///
-/// The app never uploads a raw trace — a coordinate is attached only to a report
-/// the resident explicitly submits, matching the privacy claim in the demo script.
+// wraps `CLLocationManager` so views can read a single published coordinate
 @MainActor
 final class LocationManager: NSObject, ObservableObject {
     static let defaultCoordinate = NJServiceArea.demoCenter
 
-    /// The coordinate the rest of the app should use. Falls back to the NJ demo
-    /// centre whenever there is no usable in-state fix, so the map, the radius
-    /// filter and the DPW queue are never silently empty.
+    // the coordinate the rest of the app should use
     @Published private(set) var coordinate: CLLocationCoordinate2D = NJServiceArea.demoCenter
-    /// The device's actual position, whatever it is. Only set once a fix arrives.
+    // the device's actual position, whatever it is
     @Published private(set) var rawCoordinate: CLLocationCoordinate2D?
     @Published private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
     @Published private(set) var mode: LocationMode = .awaitingPermission
@@ -74,7 +69,7 @@ final class LocationManager: NSObject, ObservableObject {
         CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
     }
 
-    /// Short line shown under the map / list explaining which coordinate is in use.
+    // short line shown under the map / list explaining which coordinate is in use
     var statusDescription: String {
         switch mode {
         case .live:
@@ -134,6 +129,6 @@ extension LocationManager: CLLocationManagerDelegate {
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        // Keep the last good coordinate; the status line already explains the fallback.
+        // keep the last good coordinate
     }
 }

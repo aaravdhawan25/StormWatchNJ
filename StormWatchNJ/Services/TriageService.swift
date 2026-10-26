@@ -3,21 +3,18 @@ import Foundation
 import UIKit
 import Vision
 
-/// The structured result a triage engine returns — the client-side equivalent of
-/// the `HazardAnalysisResult` Pydantic model in `backend/main.py`.
+// result of a photo analysis
 struct HazardAnalysis: Equatable {
     var hazardType: HazardType
     var severity: Severity
     var utilityLinesInvolved: Bool
     var roadStatus: RoadStatus
     var suggestedDescription: String
-    /// Human-readable name of whatever produced this result, shown in the UI so a
-    /// resident always knows the fields were machine-filled.
+    // which engine made this result
     var engine: String
-    /// How sure the engine is, 0...1 — nil when the engine does not report one.
-    /// OpenAI returns no such number, and inventing "100%" would be false precision.
+    // how sure the engine is, 0...1, nil when the engine does not report one
     var confidence: Double?
-    /// Short plain-English lines explaining what the engine actually saw.
+    // short plain-English lines explaining what the engine actually saw
     var evidence: [String]
 }
 
@@ -26,29 +23,18 @@ protocol TriageEngine {
     func analyze(image: UIImage, imageData: Data, context: TriageContext) async throws -> HazardAnalysis
 }
 
-/// Where the report is being filed, used only to phrase the description.
+// where the report is being filed, used only to phrase the description
 struct TriageContext {
     var municipality: String
 }
 
 // MARK: - On-device engine
 
-/// Two independent lines of evidence, combined:
-///
-/// 1. Apple's Vision scene classifier (`VNClassifyImageRequest`), matched against
-///    **exact** identifiers from its 1,303-label taxonomy. Substring matching was
-///    tried first and is actively wrong here — "tree" matches `street`, "line"
-///    matches `feline`, "car" matches `carrot`.
-/// 2. Colour statistics from `ImageSignalExtractor`, because that taxonomy has no
-///    label for flooding, a blocked drain or a downed wire.
-///
-/// This is deliberately a transparent heuristic, not a trained hazard model. It
-/// proposes; the resident disposes. For a real multimodal model, point the app at
-/// OpenAI through the `analyze-image` server function.
+// combines scene labels and colour analysis
 struct OnDeviceTriageEngine: TriageEngine {
     var name: String { "On-device analysis" }
 
-    // Every term below is a verbatim identifier from the Vision taxonomy.
+    // every term below is a verbatim identifier from the Vision taxonomy
     private static let waterLabels: Set<String> = [
         "water", "water_body", "waterways", "waterfall", "river", "lake", "creek",
         "wetland", "dam", "underwater", "submarine_water", "storm", "thunderstorm"
@@ -63,17 +49,14 @@ struct OnDeviceTriageEngine: TriageEngine {
     private static let drainLabels: Set<String> = [
         "manhole", "trash_can", "pipe"
     ]
-    /// Not a hazard class — evidence that we are looking at a roadway at all.
+    // not a hazard class, evidence that we are looking at a roadway at all
     private static let roadLabels: Set<String> = [
         "road", "dirt_road", "road_other", "street", "street_sign", "traffic_light",
         "car", "sidewalk", "bridge", "tunnel", "license_plate", "outdoor"
     ]
 
     func analyze(image: UIImage, imageData: Data, context: TriageContext) async throws -> HazardAnalysis {
-        // Vision's scene classifier is unavailable in the iOS Simulator — its
-        // Core ML backend fails with "could not create espresso context". Colour
-        // analysis is plain Core Graphics and always works, so a classifier
-        // failure degrades the result instead of killing the whole flow.
+        // Vision doesn't run in the simulator
         let observations = (try? await classify(imageData: imageData)) ?? []
         let sceneClassifierAvailable = !observations.isEmpty
         let signals = ImageSignalExtractor.signals(from: image)
@@ -86,16 +69,12 @@ struct OnDeviceTriageEngine: TriageEngine {
 
         let roadContext = visionScore(Self.roadLabels)
 
-        // Colour evidence is weighted heavily for flooding because that is exactly
-        // where the scene classifier is blind.
+        // colour matters most for flooding
         let floodScore = visionScore(Self.waterLabels) * 1.2 + signals.waterCoverage * 1.6
         let treeScore = visionScore(Self.treeLabels) * 1.1 + signals.foliageCoverage * 1.0
         let wireScore = visionScore(Self.wireLabels) * 1.4
 
-        // A blocked drain looks like a *shallow* pool at the kerb, so a mid-range
-        // water reading is weak supporting evidence. It is deliberately small and
-        // suppressed when the frame is full of vegetation: as a flat constant it
-        // outscored a fallen tree whenever the scene classifier was unavailable.
+        // a blocked drain looks like a *shallow* pool at the kerb
         let kerbPooling = signals.waterCoverage > 0.12
             && signals.waterCoverage < 0.34
             && signals.foliageCoverage < 0.25
@@ -110,14 +89,11 @@ struct OnDeviceTriageEngine: TriageEngine {
 
         let best = ranked[0]
         let hazardType: HazardType = best.1 >= 0.30 ? best.0 : .other
-        // Normalised so the percentage shown in the UI means something.
-        // Without the scene classifier the scores are colour-only, so the same
-        // raw number represents weaker evidence and is discounted accordingly.
+        // normalised so the percentage shown in the UI means something
         let ceiling = sceneClassifierAvailable ? 0.97 : 0.80
         let confidence = min(best.1 / 1.8, ceiling)
 
-        // The safety check the blueprint calls out: wires near a fallen tree or in
-        // standing water are flagged even when they are not the top classification.
+        // the safety check the blueprint calls out
         let utilityLines = wireScore > 0.25 && (hazardType == .downedWire || hazardType == .downedTree)
 
         let severity = Self.severity(for: hazardType, signals: signals, confidence: confidence)
@@ -177,7 +153,7 @@ struct OnDeviceTriageEngine: TriageEngine {
         case .downedWire:
             return .impassable
         case .downedTree:
-            // A canopy filling much of the frame means the trunk is across the road.
+            // a canopy filling much of the frame means the trunk is across the road
             return (confidence > 0.5 || signals.foliageCoverage > 0.35) ? .impassable : .moderate
         case .cloggedDrain:
             return .moderate
@@ -227,8 +203,7 @@ struct OnDeviceTriageEngine: TriageEngine {
         case .other:
             sentence = "Storm-related road obstruction reported in \(municipality)."
         }
-        // Severity has its own field and badge, so naming it here just repeats
-        // itself — "assessed as impassable; impassable."
+        // severity has its own field and badge
         switch roadStatus {
         case .impassable:
             sentence += " The road is impassable."
@@ -246,13 +221,10 @@ struct OnDeviceTriageEngine: TriageEngine {
 
 // MARK: - Remote engine
 
-/// Calls the `analyze-image` server function,
-/// which runs the photo through an OpenAI vision model with a strict JSON schema.
-/// The OpenAI key lives on the server; the app never holds it.
+// calls the `analyze-image` server function
 struct RemoteTriageEngine: TriageEngine {
     let name = "OpenAI vision"
-    /// The signed-in user's access token; the endpoint refuses anyone else so the
-    /// OpenAI key cannot be spent by strangers.
+    // the signed-in user's access token
     let token: String
 
     func analyze(image: UIImage, imageData: Data, context: TriageContext) async throws -> HazardAnalysis {
@@ -323,11 +295,7 @@ private extension Data {
 }
 
 extension UIImage {
-    /// Redraws the image with `.up` orientation.
-    ///
-    /// `cgImage` ignores `imageOrientation`, so a photo straight from the camera
-    /// (normally `.right`) would be analyzed sideways — the sky would land on the
-    /// left edge and every colour signal would be measured in the wrong place.
+    // redraws the image with `.up` orientation
     func normalizedUp() -> UIImage {
         guard imageOrientation != .up else { return self }
         let format = UIGraphicsImageRendererFormat.default()

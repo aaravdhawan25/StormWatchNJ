@@ -3,8 +3,7 @@ import { ChevronDown, Phone, Zap } from "lucide-react";
 import { useNav } from "./ui";
 import { canCallAndText } from "../lib/device";
 
-// Numbers: NJ Office of Emergency Management utility list and PSE&G's
-// downed-power-line page, as in the iPhone app.
+// phone numbers from NJ OEM and PSE&G
 const UTILITIES = [
   { name: "JCP&L", phone: "1-888-544-4877" },
   { name: "Atlantic City Electric", phone: "1-800-833-7476" },
@@ -12,11 +11,11 @@ const UTILITIES = [
 ];
 const tel = (n: string) => `tel:${n.replace(/\D/g, "")}`;
 
-/** The red alert for any hazard involving utility lines. Stay back first, then 911. */
+// the red alert for any hazard involving utility lines
 export function LifeSafetyBanner({ location }: { location?: string }) {
   const [more, setMore] = useState(false);
   const nav = useNav();
-  // As in the app: a device that can't place calls says which number to dial.
+  // as in the app: a device that can't place calls says which number to dial
   const call = (label: string, number: string) => (e: React.MouseEvent) => {
     if (canCallAndText()) return;
     e.preventDefault();

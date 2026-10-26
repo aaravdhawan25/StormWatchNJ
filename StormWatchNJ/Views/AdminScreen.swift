@@ -1,18 +1,12 @@
 import Foundation
 import SwiftUI
 
-/// The municipal side of the app, shown only to verified township accounts: the
-/// open dispatch queue, the GeoJSON/CSV export and the live GIS feed.
-///
-/// Hiding the tab is a convenience, not the security boundary. What a township
-/// account may do — set crew status, remove any hazard — is enforced by the
-/// server, which checks the role itself.
+// the municipal side of the app, shown only to verified township accounts
 struct AdminScreen: View {
     @EnvironmentObject private var store: HazardStore
     @EnvironmentObject private var account: AccountStore
 
-    /// One sheet state for share and preview — stacking two `.sheet` modifiers on
-    /// the same view does not reliably present both.
+    // one sheet for share and preview
     @State private var sheet: AdminSheet?
 
     private var openReports: [HazardReport] {
@@ -150,7 +144,7 @@ struct AdminScreen: View {
 
 }
 
-/// What the DPW console's single sheet is currently showing.
+// what the DPW console's single sheet is currently showing
 enum AdminSheet: Identifiable {
     case share(URL)
     case preview(String)

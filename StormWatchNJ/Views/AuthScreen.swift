@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Sign in, create an account, and confirm the emailed code — for residents and
-/// for township staff — on the storm backdrop.
+// sign in, create an account
 struct AuthScreen: View {
     @EnvironmentObject private var account: AccountStore
 
@@ -134,8 +133,7 @@ struct AuthScreen: View {
             Button {
                 run { try await account.signInWithGoogle(kind: kind) }
             } label: {
-                // Google's dark-theme button: its "G" mark, unaltered, on a near-black
-                // fill with a grey outline.
+                // Google's dark button style
                 HStack(spacing: 10) {
                     Image("GoogleG")
                         .resizable()
@@ -177,8 +175,7 @@ struct AuthScreen: View {
 
     @ViewBuilder
     private func verification(for pending: String) -> some View {
-        // The usual way: tap the link, come back, and the app signs in by itself
-        // (see StormWatchNJApp). This button does the same check by hand.
+        // the usual way: tap the link, come back, and the app signs in by itself
         primaryButton("I've confirmed my email", enabled: !password.isEmpty) {
             run {
                 if !(await account.checkPendingConfirmation()) {
@@ -187,7 +184,7 @@ struct AuthScreen: View {
             }
         }
 
-        // Only if the project's email template includes a code ({{ .Token }}).
+        // only if the project's email template includes a code ({{ .Token }})
         if showCodeEntry {
             field(icon: "number") {
                 TextField("", text: $code, prompt: Text("Code from the email").foregroundColor(.white.opacity(0.45)))
@@ -288,7 +285,7 @@ struct AuthScreen: View {
         .disabled(!enabled || isWorking)
     }
 
-    /// Runs an account action, showing a failure in the card rather than as an alert.
+    // runs an account action, showing a failure in the card rather than as an alert
     private func run(_ action: @escaping () async throws -> Void) {
         message = nil
         isWorking = true

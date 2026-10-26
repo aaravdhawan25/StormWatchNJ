@@ -1,6 +1,6 @@
 import Foundation
 
-/// Who is signed in.
+// who is signed in
 struct Account: Codable, Equatable {
     let id: String
     let email: String
@@ -26,32 +26,22 @@ struct TownshipDomain: Decodable, Identifiable {
     var id: String { domain }
 }
 
-/// Sign-in state, backed by Supabase Auth.
-///
-/// An account is what makes "three people say it's gone" mean three people, and
-/// what lets a reporter — and only that reporter — take down their own report.
-///
-/// Whether an account is a township account is decided on the server, from a
-/// confirmed email on a municipal domain. Nothing here can grant it.
+// sign-in state, backed by Supabase Auth
 @MainActor
 final class AccountStore: ObservableObject {
     @Published private(set) var account: Account?
-    /// Set while an emailed confirmation is outstanding for this address.
+    // set while an emailed confirmation is outstanding for this address
     @Published var pendingEmail: String? {
         didSet { if pendingEmail == nil { pendingPassword = nil } }
     }
-    /// A one-line message for the sign-in screen, e.g. after a confirmation link.
+    // a one-line message for the sign-in screen, e.g. after a confirmation link
     @Published var notice: String?
 
-    /// Kept in memory only, so that coming back from the confirmation link signs
-    /// the person straight in. Never written to disk.
+    // kept in memory only, used to sign in after the email link
     private var pendingPassword: String?
     private var pendingKind: AccountKind = .resident
 
-    /// Where the confirmation link should send people: straight back into the
-    /// app. Supabase uses it only if it is in the project's Redirect URLs list;
-    /// otherwise the link goes to the Site URL (the website), which offers a
-    /// button back to the app.
+    // where the confirmation link should send people
     static let callbackURL = "stormwatchnj://auth-callback"
     private static var redirectQuery: [URLQueryItem] { [URLQueryItem(name: "redirect_to", value: callbackURL)] }
 
@@ -63,9 +53,7 @@ final class AccountStore: ObservableObject {
         if let saved = Keychain.read(Self.sessionKey),
            let session = try? JSONDecoder().decode(StoredSession.self, from: Data(saved.utf8)) {
             self.session = session
-            // Sign-in is required, so the last known account is restored at once:
-            // someone already signed in should not be locked out of the map with
-            // no signal. `restore()` then checks the session with the server.
+            // sign-in is required, so the last known account is restored at once
             if let saved = Keychain.read(Self.accountKey) {
                 self.account = try? JSONDecoder().decode(Account.self, from: Data(saved.utf8))
             }
@@ -76,10 +64,7 @@ final class AccountStore: ObservableObject {
 
     // MARK: - Session
 
-    /// A current access token, refreshed first if it is about to expire.
-    /// Returns nil when signed out. If the server rejects the refresh — the
-    /// session was revoked — this signs out; if the network is down it keeps the
-    /// session and returns the old token.
+    // a current access token, refreshed first if it is about to expire
     func validToken() async -> String? {
         guard let session else { return nil }
         guard session.expiresAt.timeIntervalSinceNow < 60 else { return session.accessToken }
@@ -97,13 +82,13 @@ final class AccountStore: ObservableObject {
         }
     }
 
-    /// A client carrying the current session, or nil when signed out.
+    // a client carrying the current session, or nil when signed out
     func authorizedAPI() async -> BackendAPI? {
         guard let token = await validToken() else { return nil }
         return BackendAPI(token: token)
     }
 
-    /// Re-validates a saved session on launch and refreshes the role.
+    // re-validates a saved session on launch and refreshes the role
     func restore() async {
         guard session != nil else { return }
         await loadProfile()
@@ -118,7 +103,7 @@ final class AccountStore: ObservableObject {
             "email": email, "password": password, "data": ["account_type": kind.rawValue]
         ])
         if let token = reply.access_token, let refresh = reply.refresh_token, let user = reply.user {
-            // Only when the project has email confirmation switched off.
+            // only when the project has email confirmation switched off
             store(SessionResponse(access_token: token, refresh_token: refresh,
                                   expires_in: reply.expires_in ?? 3600, user: user))
             await loadProfile()
@@ -137,7 +122,7 @@ final class AccountStore: ObservableObject {
                 body: ["email": email, "password": password])
             try await adopt(reply, kind: kind)
         } catch let error as APIError where error.code == "email_not_confirmed" {
-            // Right password, unconfirmed address: send a fresh email.
+            // right password, unconfirmed address: send a fresh email
             pendingEmail = email
             pendingPassword = password
             pendingKind = kind
@@ -159,9 +144,7 @@ final class AccountStore: ObservableObject {
                                                               body: ["type": "signup", "email": pendingEmail])
     }
 
-    /// If a confirmation is outstanding and the address has since been confirmed
-    /// (the person tapped the link), signs in with the password they just typed.
-    /// Quiet when it isn't confirmed yet. Returns true if it signed in.
+    // signs in once the emailed link has been tapped
     @discardableResult
     func checkPendingConfirmation() async -> Bool {
         guard let email = pendingEmail, let password = pendingPassword, account == nil else { return false }
@@ -177,9 +160,7 @@ final class AccountStore: ObservableObject {
         }
     }
 
-    /// Handles stormwatchnj:// links: the confirmation email (when Supabase sends
-    /// it straight here, with a session in the fragment) and the website's
-    /// "Open the app" button (no session; sign in with the pending password).
+    // handles stormwatchnj:// links
     func handle(url: URL) async {
         guard url.scheme == "stormwatchnj" else { return }
         var params: [String: String] = [:]
@@ -240,9 +221,7 @@ final class AccountStore: ObservableObject {
         email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    /// Fails early, with a clear message, when a township sign-up or sign-in uses
-    /// an address that is not on a municipal domain. The server enforces the same
-    /// rule; this only spares the person a confusing error.
+    // stop early if a township email isn't on a town domain
     private func requireTownshipDomain(_ email: String) async throws {
         let township: String? = try await BackendAPI().send("POST", "rest/v1/rpc/township_for_email",
                                                             body: ["p_email": email])
@@ -265,10 +244,7 @@ final class AccountStore: ObservableObject {
         notice = nil
         await loadProfile()
 
-        // Someone with a confirmed municipal address who first signed up as a
-        // resident (or with Google) is asking to be treated as township staff.
-        // Recording that request is all the app can do; the server grants the role
-        // only because the address is confirmed and on the list.
+        // ask for township access if signed up as a resident first
         if kind == .township, account?.isTownship == false, let token = session?.accessToken {
             let _: BackendAPI.Empty? = try? await BackendAPI(token: token).send(
                 "PUT", "auth/v1/user", body: ["data": ["account_type": "township"]])
@@ -280,7 +256,7 @@ final class AccountStore: ObservableObject {
         guard let api = await authorizedAPI(), let session else { return }
         guard let rows: [Profile] = try? await api.send("GET", "rest/v1/profiles", query: [
             URLQueryItem(name: "select", value: "role,township")
-        ]) else { return }   // Offline: keep whatever was restored.
+        ]) else { return }   // offline: keep whatever was restored
         let profile = rows.first
         let current = Account(id: session.userID, email: session.email,
                               role: profile?.role ?? "resident", township: profile?.township)
@@ -333,8 +309,7 @@ final class AccountStore: ObservableObject {
         let user: AuthUser
     }
 
-    /// Sign-up answers with a bare user while confirmation is pending, or with a
-    /// full session when confirmation is switched off.
+    // sign-up returns a session only if email confirmation is off
     private struct SignUpResponse: Decodable {
         let access_token: String?
         let refresh_token: String?

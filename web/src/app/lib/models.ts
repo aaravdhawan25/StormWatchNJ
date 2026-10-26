@@ -1,4 +1,4 @@
-// Mirrors StormWatchNJ/Models in the iPhone app.
+// mirrors StormWatchNJ/Models in the iPhone app
 
 export type HazardType = "CLOGGED_DRAIN" | "STREET_FLOODING" | "DOWNED_TREE" | "DOWNED_WIRE" | "OTHER";
 export type Severity = "LOW" | "MODERATE" | "IMPASSABLE";
@@ -6,7 +6,7 @@ export type RoadStatus = "CLEAR_TO_PASS" | "ONE_LANE_OPEN" | "IMPASSABLE";
 export type ReportStatus = "ACTIVE" | "IN_PROGRESS" | "RESOLVED";
 
 export interface Hazard {
-  /** Server id for shared hazards; a local id for demo and guest reports. */
+  // server id for shared hazards; a local id for demo and guest reports
   id: string;
   reportType: HazardType;
   severity: Severity;
@@ -22,12 +22,12 @@ export interface Hazard {
   upvotes: number;
   createdAt: string;
   updatedAt: string;
-  /** True when it lives in the shared database (voting and removal go there). */
+  // true when it lives in the shared database (voting and removal go there)
   shared: boolean;
   isMine?: boolean;
   notThereVotes?: number;
   iVotedNotThere?: boolean;
-  /** Object URL of a photo taken in this browser session, never uploaded. */
+  // object URL of a photo taken in this browser session, never uploaded
   photoURL?: string;
   simulated?: boolean;
 }
@@ -49,7 +49,7 @@ export const hazardShort: Record<HazardType, string> = {
   CLOGGED_DRAIN: "Drains", STREET_FLOODING: "Flooding", DOWNED_TREE: "Trees", DOWNED_WIRE: "Wires", OTHER: "Other",
 };
 
-/** Each hazard type has its own colour family, like the iPhone app. */
+// each hazard type has its own colour family, like the iPhone app
 export const hazardGradient: Record<HazardType, [string, string]> = {
   STREET_FLOODING: ["#1f73db", "#24b8d6"],
   CLOGGED_DRAIN: ["#4d52c7", "#3d94db"],

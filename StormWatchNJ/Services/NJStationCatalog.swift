@@ -1,12 +1,6 @@
 import Foundation
 
-/// The New Jersey river gauges StormWatch NJ watches.
-///
-/// Site numbers, names and coordinates were taken from the live USGS Water
-/// Services response for these sites, so they match what the API returns. The
-/// `actionStageFt` / `floodStageFt` thresholds are *demo values* chosen to be
-/// plausible for each basin — before any real deployment they must be replaced
-/// with the official NWS AHPS flood stages for each site.
+// the New Jersey river gauges StormWatch NJ watches
 enum NJStationCatalog {
     static let stations: [USGSStation] = [
         USGSStation(siteID: "01402000",

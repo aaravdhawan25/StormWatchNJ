@@ -1,15 +1,4 @@
-// OpenAI hazard triage for StormWatch NJ.
-//
-//   POST /analyze-image   multipart/form-data with an image in the "file" field
-//
-// Signed-in users (the iPhone app and the website) are always allowed. The
-// website's guest demo is allowed too, within limits so strangers can't run up
-// the OpenAI bill: 10 analyses an hour per visitor and 300 a day for all guests
-// together, counted in the database by a hash of the visitor's IP address.
-// The key is read from the OPENAI_API_KEY function secret if set, otherwise from
-// Supabase Vault (name "openai_api_key"). It lives only on the server.
-// The photo is passed to OpenAI for this one request and is not stored by
-// StormWatch.
+// OpenAI hazard triage for StormWatch NJ
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
 
@@ -24,7 +13,7 @@ Inspect the storm incident photo.
 4. Write a concise 1-2 sentence factual description for a public works crew. Describe only what is visible; do not speculate.
 If the photo does not show a storm hazard, answer OTHER with LOW severity and say so.`;
 
-// Strict structured output: the model can only answer in this shape.
+// strict structured output: the model can only answer in this shape
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -38,7 +27,7 @@ const SCHEMA = {
   required: ["hazard_type", "severity", "utility_lines_involved", "road_status", "suggested_description"],
 };
 
-// The web demo calls this from a browser, which first sends an OPTIONS preflight.
+// the web demo calls this from a browser
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-stormwatch-guest",
@@ -101,7 +90,7 @@ Deno.serve(async (req) => {
     return reply({ detail: "AI analysis timed out." }, 504);
   }
   if (!response.ok) {
-    // Log the provider's answer for debugging; never echo it to the client.
+    // log the provider's answer for debugging; never echo it to the client
     console.error("openai", response.status, (await response.text()).slice(0, 500));
     return reply({ detail: "AI analysis failed." }, 502);
   }

@@ -26,7 +26,7 @@ function download(name: string, text: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** Township staff only. Hiding the tab is a convenience; the server enforces what staff may do. */
+// township staff only
 export function DpwScreen() {
   const { hazards, account } = useStore();
   const nav = useNav();
@@ -68,7 +68,7 @@ export function DpwScreen() {
             <code style={{ fontSize: 11, wordBreak: "break-all", userSelect: "text" }}>{FEED_URL}</code>
           </div>
           <button className="cell link" onClick={async () => {
-            // The app opens the share sheet; browsers that have one do the same, others copy the link.
+            // the app opens the share sheet
             try { if (navigator.share) { await navigator.share({ title: "StormWatch NJ live GIS feed", url: FEED_URL }); return; } } catch { return; }
             await navigator.clipboard?.writeText(FEED_URL);
             nav.dialog({ title: "Feed link copied", message: FEED_URL, actions: [{ label: "OK" }] });

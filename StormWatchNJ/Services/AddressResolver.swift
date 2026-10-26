@@ -1,14 +1,13 @@
 import CoreLocation
 import Foundation
 
-/// A street-level description of where a hazard is.
+// a street-level description of where a hazard is
 struct ResolvedAddress: Equatable {
     var street: String?
     var city: String?
     var postalCode: String?
 
-    /// "12 Dey Rd, Plainsboro, NJ 08536" — what a caller reads to a dispatcher,
-    /// and the Open311 `address_string`.
+    // "12 Dey Rd, Plainsboro, NJ 08536", what a caller reads to a dispatcher
     var singleLine: String? {
         var parts: [String] = []
         if let street { parts.append(street) }
@@ -21,14 +20,9 @@ struct ResolvedAddress: Equatable {
     }
 }
 
-/// Turns a coordinate into a street address with Apple's reverse geocoder.
-///
-/// A dispatcher needs "near 12 Dey Road", not a latitude, and the municipal relay
-/// routes by ZIP code. Returns nil when offline or when nothing is found, and
-/// every caller falls back to the town name.
+// turns a coordinate into a street address with Apple's reverse geocoder
 enum AddressResolver {
-    /// The centre of a New Jersey ZIP code, for looking up alerts or shelters
-    /// somewhere other than where the phone is.
+    // center of a NJ ZIP code
     static func coordinate(forZIP zip: String) async -> CLLocationCoordinate2D? {
         guard zip.count == 5, zip.allSatisfy(\.isNumber),
               let placemark = try? await CLGeocoder().geocodeAddressString("\(zip), NJ, USA").first,

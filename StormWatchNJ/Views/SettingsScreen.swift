@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Everything a person can configure about their own app, in one place.
+// everything a person can configure about their own app, in one place
 struct SettingsScreen: View {
     @EnvironmentObject private var store: HazardStore
     @EnvironmentObject private var usgs: USGSService
@@ -187,9 +187,7 @@ struct SettingsScreen: View {
 
     // MARK: - Actions
 
-    /// Resetting while the simulation is on would wipe the simulated hazards but
-    /// leave the toggle reading "on", so the switch would be lying about the state
-    /// of the app. Clear the simulation first, then reseed.
+    // turn off the simulation before resetting
     private func resetEverything() {
         if settings.simulateNoreaster { toggleStorm(false) }
         store.resetToSeedData()

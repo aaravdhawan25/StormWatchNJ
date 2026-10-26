@@ -100,7 +100,7 @@ export function SettingsScreen() {
   );
 }
 
-/** Who is signed in, what that lets them do, and the way out — as on iPhone. */
+// who is signed in, what that lets them do, and the way out, as on iPhone
 function AccountScreen() {
   const s = useStore();
   const nav = useNav();

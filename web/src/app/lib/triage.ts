@@ -6,9 +6,7 @@ export interface Analysis {
   description: string; engine: string; evidence: string[]; confidence?: number;
 }
 
-/** Photo analysis by OpenAI through the analyze-image server function — the
- *  same one the iPhone app uses. Without an account (the guest demo) the server
- *  still allows it, within a per-visitor and daily limit. */
+// OpenAI photo analysis through the analyze-image function
 export async function analyzeWithOpenAI(photo: Blob, token?: string): Promise<Analysis> {
   const form = new FormData();
   form.append("file", photo, "incident.jpg");
@@ -27,12 +25,7 @@ export async function analyzeWithOpenAI(photo: Blob, token?: string): Promise<An
   };
 }
 
-/**
- * Colour analysis, ported from the iPhone app's ImageSignals: measures how much
- * of the lower frame reads as water and how much of the frame is vegetation.
- * Used only when OpenAI can't be reached, as in the app. A transparent
- * heuristic, not a trained model.
- */
+// colour analysis, ported from the iPhone app's ImageSignals
 export async function analyzeOnDevice(photo: Blob, town: string): Promise<Analysis> {
   const bitmap = await createImageBitmap(photo);
   const grid = 64;

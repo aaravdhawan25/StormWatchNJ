@@ -4,5 +4,5 @@ import { Page } from "./Page";
 
 createRoot(document.getElementById("root")!).render(<StrictMode><Page /></StrictMode>);
 
-// Needed to show notifications (and the only way to on an iPhone home-screen app).
+// needed to show notifications
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});

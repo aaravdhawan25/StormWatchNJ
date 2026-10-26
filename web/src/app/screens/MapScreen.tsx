@@ -44,7 +44,7 @@ export function MapScreen() {
   const nav = useNav();
   const [showGauges, setShowGauges] = useState(true);
   const [tick, setTick] = useState(0);
-  // As in the app: move to the first real location fix, then leave the map alone.
+  // as in the app: move to the first real location fix, then leave the map alone
   const [centred, setCentred] = useState(false);
   useEffect(() => {
     if (locationMode === "live" && !centred) { setCentred(true); setTick(t => t + 1); }

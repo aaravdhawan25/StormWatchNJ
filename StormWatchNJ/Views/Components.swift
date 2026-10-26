@@ -15,8 +15,7 @@ struct SeverityBadge: View {
     }
 }
 
-/// Map pin for a hazard report. Impassable hazards get a soft halo so the
-/// worst problems read first at a glance.
+// map pin for a hazard report
 struct HazardPin: View {
     let report: HazardReport
     var isSelected: Bool = false
@@ -64,7 +63,7 @@ struct GaugePin: View {
     }
 }
 
-/// Level bar showing how close a river is to flood stage, with a marked threshold.
+// level bar showing how close a river is to flood stage, with a marked threshold
 struct FloodStageBar: View {
     let station: USGSStation
 
@@ -77,7 +76,7 @@ struct FloodStageBar: View {
                     .fill(LinearGradient(colors: [station.alert.tint.opacity(0.7), station.alert.tint],
                                          startPoint: .leading, endPoint: .trailing))
                     .frame(width: max(6, width * station.floodProgress))
-                // Action-stage tick.
+                // action-stage tick
                 if station.floodStageFt > 0 {
                     let ratio = min(max(station.actionStageFt / station.floodStageFt, 0), 1)
                     Rectangle()
@@ -113,7 +112,7 @@ struct EmptyStateView: View {
     }
 }
 
-/// Rich card row used by the nearby list and the DPW queue.
+// rich card row used by the nearby list and the DPW queue
 struct HazardCard: View {
     let report: HazardReport
     var distanceMiles: Double?
@@ -121,7 +120,7 @@ struct HazardCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            // Severity stripe.
+            // severity stripe
             Rectangle()
                 .fill(report.severity.tint)
                 .frame(width: 4)
@@ -192,8 +191,7 @@ struct HazardCard: View {
 }
 
 extension Date {
-    /// Relative time that reads naturally for very recent instants —
-    /// `RelativeDateTimeFormatter` alone renders "in 0 seconds" for now.
+    // relative time that reads naturally for very recent instants
     var shortRelative: String {
         let elapsed = Date().timeIntervalSince(self)
         if elapsed < 60 { return "just now" }

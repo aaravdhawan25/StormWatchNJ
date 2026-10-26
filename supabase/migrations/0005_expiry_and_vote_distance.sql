@@ -1,16 +1,12 @@
--- Two moderation rules:
---   1. A hazard expires 3 days after its last activity (posted, confirmed by a
---      second report, or a crew status change) and comes off the map.
---   2. Voting "it's not there anymore" only counts from within 1 mile of it.
+-- hazards expire after 3 days, and votes only count within 1 mile
 
 alter table public.removed_hazards drop constraint removed_hazards_reason_check;
 alter table public.removed_hazards add constraint removed_hazards_reason_check
     check (reason in ('reporter', 'township', 'community', 'expired'));
 
--- ---- 1. expiry ------------------------------------------------------------
+-- ---- expiry
 
--- Archives and deletes every hazard with no activity for 3 days.
--- Run on a schedule by pg_cron (below); not callable from the API.
+-- archives and deletes every hazard with no activity for 3 days
 create or replace function public.expire_hazards()
 returns integer
 language plpgsql security definer set search_path = ''
@@ -32,8 +28,7 @@ end;
 $$;
 revoke execute on function public.expire_hazards() from public, anon, authenticated;
 
--- The app's list also hides expired hazards, so one never shows up in the
--- minutes between cleanup runs.
+-- the app's list also hides expired hazards
 create or replace function public.list_hazards()
 returns table (
     id uuid, report_type text, severity text, road_status text,
@@ -60,10 +55,9 @@ $$;
 create extension if not exists pg_cron;
 select cron.schedule('expire-hazards', '*/15 * * * *', 'select public.expire_hazards()');
 
--- ---- 2. vote distance -----------------------------------------------------
+-- ---- vote distance
 
--- The old version took no location. Removing it means every vote, from any
--- version of the app, has to say where the voter is.
+-- the old version took no location
 drop function if exists public.vote_not_there(uuid);
 
 create or replace function public.vote_not_there(
@@ -89,7 +83,7 @@ begin
             using errcode = 'P0001';
     end if;
 
-    -- Lock the hazard so two simultaneous third votes cannot both act on it.
+    -- lock the hazard so two simultaneous third votes cannot both act on it
     select h.owner_id,
            extensions.st_dwithin(h.location,
                extensions.st_setsrid(extensions.st_makepoint(p_longitude, p_latitude), 4326)::extensions.geography,

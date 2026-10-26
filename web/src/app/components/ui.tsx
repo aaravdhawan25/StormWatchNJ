@@ -145,7 +145,7 @@ export function HazardCard({ hazard, miles, onClick }: { hazard: Hazard; miles?:
   );
 }
 
-/** Rain over rising water — the same scene as the app icon. Stops under reduced motion. */
+// rain over rising water, the same scene as the app icon
 export function StormBackdrop({ waterLevel = 0.24, animated = true }: { waterLevel?: number; animated?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {

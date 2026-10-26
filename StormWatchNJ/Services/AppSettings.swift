@@ -1,15 +1,13 @@
 import Foundation
 
-/// User-facing configuration, persisted in `UserDefaults`.
+// user-facing configuration, persisted in `UserDefaults`
 @MainActor
 final class AppSettings: ObservableObject {
     @Published var searchRadiusMiles: Double {
         didSet { defaults.set(searchRadiusMiles, forKey: Keys.radius) }
     }
 
-    /// Whether to offer a Nextdoor cross-post after a report is submitted.
-    /// Only ever *offers* — nothing leaves the app without an explicit tap, and
-    /// the neighbor still confirms inside Nextdoor's own composer.
+    // whether to offer a Nextdoor cross-post after a report is submitted
     @Published var offerNextdoorShare: Bool {
         didSet { defaults.set(offerNextdoorShare, forKey: Keys.nextdoor) }
     }
@@ -30,9 +28,7 @@ final class AppSettings: ObservableObject {
         self.offerNextdoorShare = defaults.object(forKey: Keys.nextdoor) as? Bool ?? true
     }
 
-    /// Photo triage always goes to OpenAI through the server. On-device analysis
-    /// is not a user choice; it is only the safety net `SnapTriageScreen` falls
-    /// back to when that call fails, so a resident with no signal can still file.
+    // photo triage always goes to OpenAI through the server
     func triageEngine(token: String?) -> any TriageEngine {
         guard let token else { return OnDeviceTriageEngine() }
         return RemoteTriageEngine(token: token)

@@ -29,7 +29,7 @@ export function HazardDetail({ hazardId, pushed = false }: { hazardId: string; p
   const township = store.account?.role === "township";
   const guest = store.account?.guest;
   const canRemoveShared = h.isMine || township;
-  // Mirrors the server's 1-mile voting rule; the server makes the real decision.
+  // mirrors the server's 1-mile voting rule
   const voteMiles = store.realLocation ? milesBetween(store.realLocation, h) : null;
   const tooFar = voteMiles != null && voteMiles > 1;
   const act = (fn: () => Promise<unknown>, after?: () => void) => {

@@ -28,9 +28,9 @@ struct StormWatchNJApp: App {
             }
             .animation(.easeInOut(duration: 0.35), value: account.isSignedIn)
             .task { await account.restore() }
-            // The confirmation email, or the website's "Open the app" button.
+            // the confirmation email, or the website's "Open the app" button
             .onOpenURL { url in Task { await account.handle(url: url) } }
-            // Back from tapping the link in Mail: sign straight in if it's confirmed.
+            // back from tapping the link in Mail: sign straight in if it's confirmed
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await account.checkPendingConfirmation() } }
             }

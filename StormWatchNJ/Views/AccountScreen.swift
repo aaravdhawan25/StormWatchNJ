@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// The signed-in account: who you are, what that lets you do, and the way out.
-/// Signing in itself happens on `AuthScreen`, before the app opens.
+// the signed-in account
 struct AccountScreen: View {
     @EnvironmentObject private var account: AccountStore
     @State private var confirmSignOut = false

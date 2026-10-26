@@ -1,10 +1,4 @@
--- Rule checks for the StormWatch NJ database.
---
--- Run in the Supabase SQL editor. Everything happens inside one DO block that
--- ends by raising an exception carrying the results, so the whole thing rolls
--- back: no test accounts or hazards are left behind, and because the users are
--- inserted directly, no emails are sent. A passing run reads
--- "RESULTS: N passed, 0 failed".
+-- rule checks for the StormWatch NJ database
 
 do $$
 declare
@@ -13,8 +7,7 @@ declare
     ed uuid := gen_random_uuid(); town uuid := gen_random_uuid(); pending uuid := gen_random_uuid();
     h uuid; h2 uuid; h3 uuid; r jsonb; ok boolean; n int;
 begin
-    -- "Acting as" a user below means setting request.jwt.claims, which is what
-    -- auth.uid() reads.
+    -- "Acting as" a user below means setting request.jwt.claims
     insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, raw_user_meta_data) values
         (bo,  '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'bo@example.com',  now(), '{}'),
         (cy,  '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'cy@example.com',  now(), '{}'),
@@ -34,16 +27,16 @@ begin
     ok := (select role = 'township' and township = 'Plainsboro Township' from public.profiles where id = pending);
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | confirming email grants township'; end if;
 
-    -- A resident on a municipal domain who never asked is not promoted.
+    -- a resident on a municipal domain who never asked is not promoted
     ok := (select role = 'resident' from public.profiles where id = bo);
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | resident default'; end if;
 
-    -- Claiming township later without a municipal email changes nothing.
+    -- claiming township later without a municipal email changes nothing
     update auth.users set raw_user_meta_data = '{"account_type":"township"}' where id = cy;
     ok := (select role = 'resident' from public.profiles where id = cy);
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | metadata alone does not grant township'; end if;
 
-    -- Moving off the municipal domain drops the role.
+    -- moving off the municipal domain drops the role
     update auth.users set email = 'dpw@gmail.com' where id = pending;
     ok := (select role = 'resident' and township is null from public.profiles where id = pending);
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | leaving domain drops township'; end if;
@@ -85,8 +78,7 @@ begin
     exception when sqlstate 'P0001' then passed := passed + 1;
     end;
 
-    -- Assigned first: called inside the WHERE clause, the function would run
-    -- during a scan that cannot see the row it just inserted.
+    -- assign first so the new row is visible
     r := public.report_hazard('DOWNED_WIRE', 'LOW', 'CLEAR_TO_PASS', false, 'Wire', 40.40, -74.50);
     ok := (select utility_lines_involved from public.hazards where id = (r ->> 'id')::uuid);
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | downed wire implies utility lines'; end if;
@@ -119,7 +111,7 @@ begin
     exception when sqlstate 'P0001' then passed := passed + 1; end;
     ok := not exists (select 1 from public.hazard_votes where hazard_id = h);
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | refused votes were counted'; end if;
-    -- 1,500 m away: just inside the mile.
+    -- 1,500 m away: just inside the mile
     ok := ((public.vote_not_there(h, 40.3318 + 0.01349, -74.5893)) ->> 'not_there_votes')::int = 1;
     if ok then passed := passed + 1; else failed := failed + 1; failures := failures || ' | vote at 0.93 mi refused'; end if;
     delete from public.hazard_votes where hazard_id = h;

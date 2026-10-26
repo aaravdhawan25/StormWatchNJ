@@ -2,15 +2,11 @@ import CoreLocation
 import Foundation
 import UIKit
 
-/// Local persistence for hazard reports and their photos.
-///
-/// Reports are written to `Documents/hazard_reports.json` and photos to
-/// `Documents/photos/`, so everything a judge submits during a demo survives an
-/// app relaunch without needing the backend to be running.
+// local persistence for hazard reports and their photos
 @MainActor
 final class HazardStore: ObservableObject {
     @Published private(set) var reports: [HazardReport] = []
-    /// Reports added by the nor'easter simulation, tracked so it can be undone.
+    // reports added by the nor'easter simulation, tracked so it can be undone
     @Published private(set) var simulatedReportIDs: Set<UUID> = []
 
     private let fileManager = FileManager.default
@@ -34,8 +30,7 @@ final class HazardStore: ObservableObject {
 
     // MARK: - Queries
 
-    /// Client-side equivalent of the blueprint's `ST_DWithin` query: active reports
-    /// within `radiusMiles` of the commuter, nearest first.
+    // client-side equivalent of the blueprint's `ST_DWithin` query
     func nearby(_ coordinate: CLLocationCoordinate2D, radiusMiles: Double) -> [HazardReport] {
         let origin = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         let radiusMeters = radiusMiles * 1609.34
@@ -65,23 +60,17 @@ final class HazardStore: ObservableObject {
         persist()
     }
 
-    /// Replaces a stored report with an edited copy, e.g. once its address resolves.
+    // replaces a stored report with an edited copy, e.g. once its address resolves
     func update(_ report: HazardReport) {
         guard let index = reports.firstIndex(where: { $0.id == report.id }) else { return }
-        // The photo is attached by `add`; an edited copy made before that must not drop it.
+        // the photo is attached by `add`
         var merged = report
         merged.photoFilename = reports[index].photoFilename
         reports[index] = merged
         persist()
     }
 
-    /// Reconciles local reports with the shared database.
-    ///
-    /// The server is the authority for anything it has a ticket for: fields are
-    /// refreshed, new hazards from other people are added, and a shared report the
-    /// server no longer lists — removed by its reporter, a township, or three
-    /// "not there" votes — is dropped here too. Reports that were never uploaded
-    /// (seeded demo data, anything posted offline) are left alone.
+    // reconciles local reports with the shared database
     func merge(serverHazards: [ServerHazard]) {
         let listed = Set(serverHazards.map(\.id))
         for report in reports where report.isShared && !listed.contains(report.relayTicketID ?? "") {
@@ -98,9 +87,7 @@ final class HazardStore: ObservableObject {
                 reports.append(fresh)
             }
         }
-        // A report posted here can be folded server-side into a ticket this device
-        // had already pulled, leaving two local copies of one hazard. Keep the one
-        // with a photo.
+        // drop duplicate copies of the same ticket
         var seenTickets: Set<String> = []
         reports = reports
             .sorted { ($0.photoFilename != nil ? 0 : 1) < ($1.photoFilename != nil ? 0 : 1) }

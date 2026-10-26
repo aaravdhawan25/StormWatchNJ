@@ -1,7 +1,7 @@
 import CoreLocation
 import Foundation
 
-/// An emergency shelter that FEMA currently lists as open.
+// an emergency shelter that FEMA currently lists as open
 struct Shelter: Identifiable, Hashable {
     let id: String
     let name: String
@@ -19,18 +19,11 @@ struct Shelter: Identifiable, Hashable {
     }
 }
 
-/// Finds open emergency shelters, two ways.
-///
-/// 1. **FEMA's Open Shelters map service** — the National Shelter System feed of
-///    shelters open right now. On an ordinary day it lists none anywhere near New
-///    Jersey; that is the honest answer, not a failure.
-/// 2. **FEMA's text line** — "SHELTER" plus a ZIP code to 43362 (4FEMA). The app
-///    only prepares the message; the resident sends it, and FEMA replies by text.
-///    This works with no data connection, which is when shelters matter most.
+// finds open emergency shelters, two ways
 enum ShelterService {
     static let searchRadiusMiles = 50.0
 
-    /// FEMA's short code, 4FEMA.
+    // FEMA's short code, 4FEMA
     static let textNumber = "43362"
 
     struct LookupError: LocalizedError {
@@ -47,7 +40,7 @@ enum ShelterService {
             URLQueryItem(name: "distance", value: String(searchRadiusMiles)),
             URLQueryItem(name: "units", value: "esriSRUnit_StatuteMile"),
             URLQueryItem(name: "outFields", value: "shelter_id,shelter_name,address,city,state,zip,org_name,pet_accommodations_code,wheelchair_accessible"),
-            // The latitude/longitude attributes are often empty; the geometry is not.
+            // the latitude/longitude attributes are often empty; the geometry is not
             URLQueryItem(name: "returnGeometry", value: "true"),
             URLQueryItem(name: "outSR", value: "4326"),
             URLQueryItem(name: "f", value: "json")
@@ -71,7 +64,7 @@ enum ShelterService {
             let lon = geometry?["x"] as? Double
             let lat = geometry?["y"] as? Double
 
-            // FEMA sometimes fills ZIP with "0".
+            // FEMA sometimes fills ZIP with "0"
             let zip = (a["zip"] as? String).flatMap { $0.count == 5 ? $0 : nil }
             let cityLine = [a["city"] as? String, a["state"] as? String].compactMap { $0 }.joined(separator: ", ")
             let address = [a["address"] as? String, cityLine.isEmpty ? nil : cityLine, zip]
@@ -94,7 +87,7 @@ enum ShelterService {
         return shelters.sorted { ($0.distanceMiles ?? .infinity) < ($1.distanceMiles ?? .infinity) }
     }
 
-    /// FEMA uses "UNK" freely. Unknown stays unknown rather than becoming "no".
+    // FEMA uses "UNK" freely
     private static func flag(_ value: Any?, noValues: [String]) -> Bool? {
         guard let text = (value as? String)?.uppercased(), !text.isEmpty, text != "UNK" else { return nil }
         return !noValues.contains(text)
@@ -104,8 +97,7 @@ enum ShelterService {
         zip.count == 5 && zip.allSatisfy(\.isNumber)
     }
 
-    /// Opens Messages addressed to 43362 with "SHELTER <zip>" typed in. Nothing is
-    /// sent until the resident taps send. Standard message rates apply.
+    // opens Messages addressed to 43362 with "SHELTER <zip>" typed in
     static func textURL(zip: String) -> URL? {
         guard isValidZIP(zip) else { return nil }
         return URL(string: "sms:\(textNumber)&body=SHELTER%20\(zip)")

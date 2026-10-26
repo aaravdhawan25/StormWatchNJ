@@ -1,22 +1,4 @@
-// Open311 GeoReport v2 for StormWatch NJ.
-//
-//   GET  /georeport/discovery.json
-//   GET  /georeport/services.json
-//   GET  /georeport/services/{service_code}.json
-//   GET  /georeport/requests.json?status=open|closed&service_code=A,B&start_date=&end_date=
-//   GET  /georeport/requests/{service_request_id}.json
-//   POST /georeport/requests.json            (application/x-www-form-urlencoded)
-//
-// Spec: https://wiki.open311.org/GeoReport_v2/
-//
-// Reads are public. A POST must come from a signed-in StormWatch user (the app
-// sends their session token) or carry an `api_key` listed in the
-// OPEN311_API_KEYS secret, for a town's own system. With neither it is refused,
-// so this cannot be used to flood the map anonymously.
-//
-// Narrower than the spec: JSON only; `lat`/`long` are required (there is no
-// geocoder to place an `address_string`); and reporter name, email and phone
-// are accepted and discarded, so the public feed cannot leak who filed a report.
+// Open311 GeoReport v2 for StormWatch NJ
 import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -56,7 +38,7 @@ const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 }
-// Open311's error shape: a list of {code, description}.
+// Open311's error shape: a list of {code, description}
 const fail = (status: number, description: string) => json([{ code: status, description }], status);
 
 // deno-lint-ignore no-explicit-any
@@ -84,7 +66,7 @@ function toOpen311(h: any) {
 
 const mapsLink = (lat: number, lon: number) => `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
 
-/** Forwards one new report to its town's public works desk, if that town opted in. Never throws. */
+// forwards one new report to its town's public works desk, if that town opted in
 async function dispatch(admin: SupabaseClient, id: string) {
   try {
     const { data: h } = await admin.from("hazards").select(PUBLIC_COLUMNS).eq("id", id).maybeSingle();
@@ -92,7 +74,7 @@ async function dispatch(admin: SupabaseClient, id: string) {
     const { data: town } = await admin.from("dispatch_towns").select("*").eq("zipcode", h.zipcode).eq("enabled", true).maybeSingle();
     if (!town) return;
 
-    // Cap what any one desk receives in an hour.
+    // cap what any one desk receives in an hour
     const cap = Number(Deno.env.get("DISPATCH_MAX_PER_HOUR") ?? "20");
     const since = new Date(Date.now() - 3600_000).toISOString();
     const { count } = await admin.from("hazards").select("id", { count: "exact", head: true })
@@ -117,7 +99,7 @@ async function dispatch(admin: SupabaseClient, id: string) {
       photo: null,
       confirmations: h.upvotes,
       reported_at: h.created_at,
-      // Said plainly so a dispatcher weighs it correctly.
+      // said plainly so a dispatcher weighs it correctly
       verification: "Unverified resident report, triaged by software. Confirm on site.",
     };
 
@@ -159,7 +141,7 @@ async function createRequest(req: Request, admin: SupabaseClient) {
   const form = await req.formData();
   const field = (k: string) => (form.get(k)?.toString() ?? "").trim();
 
-  // Who is asking: a signed-in user, or a town system holding an API key.
+  // who is asking: a signed-in user, or a town system holding an API key
   const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   let client: SupabaseClient | null = null;
   if (token && token !== ANON_KEY) {
@@ -200,12 +182,12 @@ async function createRequest(req: Request, admin: SupabaseClient) {
     p_address: address || null, p_zipcode: zipcode || null, p_municipality: field("attribute[municipality]") || null,
   });
   if (error) {
-    // P0001 is a rule the database refused on purpose, e.g. outside New Jersey.
+    // P0001 is a rule the database refused on purpose, e.g. outside New Jersey
     return error.code === "P0001" ? fail(400, error.message) : fail(500, "Could not store the report.");
   }
 
   if (!data.duplicate) {
-    // Runs after the response so a slow town endpoint never stalls the app.
+    // runs after the response so a slow town endpoint never stalls the app
     const job = dispatch(admin, data.id);
     // deno-lint-ignore no-explicit-any
     (globalThis as any).EdgeRuntime?.waitUntil?.(job);

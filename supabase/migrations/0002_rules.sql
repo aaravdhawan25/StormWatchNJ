@@ -1,16 +1,8 @@
--- StormWatch NJ — the rules, as functions.
---
--- All are SECURITY DEFINER with an empty search_path and fully qualified names,
--- and each checks auth.uid() itself. Execute is revoked from everyone and then
--- granted only to the roles that need it.
+-- StormWatch NJ, the rules, as functions
 
--- ---------------------------------------------------------------------------
--- Accounts
--- ---------------------------------------------------------------------------
+-- ---- accounts
 
--- The township a given email address belongs to, or null. Exact match on the
--- part after the last "@": a suffix match would accept
--- someone@princetonnj.gov.example.com.
+-- the township a given email address belongs to, or null
 create or replace function public.township_for_email(p_email text)
 returns text
 language sql stable security definer set search_path = ''
@@ -21,8 +13,7 @@ as $$
        and trim(p_email) ~ '^[^@\s]+@[^@\s]+$';
 $$;
 
--- Refuses a township sign-up from an address that is not on a municipal domain,
--- before the account is created.
+-- block township sign-ups from non-town emails
 create or replace function public.check_township_signup()
 returns trigger
 language plpgsql security definer set search_path = ''
@@ -37,14 +28,7 @@ begin
 end;
 $$;
 
--- Keeps profiles.role in step with the account. An account is a township
--- account only when ALL of these hold:
---   * it asked to be one,
---   * its email is on a recognised municipal domain, and
---   * that email has been confirmed.
--- The last condition is the one that matters. The first two are things anyone
--- can type; only confirmation proves the person receives mail at that address.
--- Recomputed on every change, so swapping to a non-municipal email drops the role.
+-- keeps profiles.role in step with the account
 create or replace function public.sync_profile()
 returns trigger
 language plpgsql security definer set search_path = ''
@@ -82,12 +66,9 @@ as $$
                     where p.id = (select auth.uid()) and p.role = 'township');
 $$;
 
--- ---------------------------------------------------------------------------
--- Hazards
--- ---------------------------------------------------------------------------
+-- ---- hazards
 
--- The shared hazard list as the caller should see it. Says whether each hazard
--- is the caller's, never whose it is.
+-- the shared hazard list as the caller should see it
 create or replace function public.list_hazards()
 returns table (
     id uuid, report_type text, severity text, road_status text,
@@ -110,9 +91,7 @@ as $$
      limit 1000;
 $$;
 
--- Files a report. A second report of the same kind of hazard within 75 m and
--- 6 hours becomes a confirmation of the first instead of a second ticket on a
--- public works desk.
+-- files a report
 create or replace function public.report_hazard(
     p_report_type text, p_severity text, p_road_status text,
     p_utility_lines_involved boolean, p_description text,
@@ -173,8 +152,7 @@ begin
 end;
 $$;
 
--- "It's not there anymore." One vote per account, never on your own report;
--- the third distinct vote removes the hazard for everyone.
+-- "it's not there anymore": one vote each, third vote removes it
 create or replace function public.vote_not_there(p_hazard uuid)
 returns jsonb
 language plpgsql security definer set search_path = ''
@@ -189,7 +167,7 @@ begin
         raise exception 'Sign in to do that.' using errcode = '42501';
     end if;
 
-    -- Lock the hazard so two simultaneous third votes cannot both act on it.
+    -- lock the hazard so two simultaneous third votes cannot both act on it
     select h.owner_id into v_owner from public.hazards h where h.id = p_hazard for update;
     if not found then
         raise exception 'That hazard is no longer on the map.' using errcode = 'P0002';
@@ -210,7 +188,7 @@ begin
 end;
 $$;
 
--- Removal by the reporter or by township staff.
+-- removal by the reporter or by township staff
 create or replace function public.remove_hazard(p_hazard uuid)
 returns jsonb
 language plpgsql security definer set search_path = ''
@@ -258,9 +236,7 @@ begin
 end;
 $$;
 
--- ---------------------------------------------------------------------------
--- Who may call what
--- ---------------------------------------------------------------------------
+-- ---- permissions
 
 revoke execute on all functions in schema public from public, anon, authenticated;
 
@@ -271,12 +247,10 @@ grant execute on function public.report_hazard(text, text, text, boolean, text,
 grant execute on function public.vote_not_there(uuid)          to authenticated;
 grant execute on function public.remove_hazard(uuid)           to authenticated;
 grant execute on function public.set_hazard_status(uuid, text) to authenticated;
--- Trigger functions and helpers run inside the functions above, as the
--- definer, and are not callable from the API. The auth service fires the
--- triggers as supabase_auth_admin.
+-- helpers are only called by the functions above
 grant execute on function public.check_township_signup() to supabase_auth_admin;
 grant execute on function public.sync_profile()          to supabase_auth_admin;
 grant execute on function public.is_township()           to authenticated;
 
--- Functions created later should not be open by default either.
+-- functions created later should not be open by default either
 alter default privileges in schema public revoke execute on functions from public, anon, authenticated;

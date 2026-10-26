@@ -3,16 +3,13 @@ import Foundation
 import SwiftUI
 import UIKit
 
-/// `UIImagePickerController` wrapper for live camera capture.
-/// The simulator has no camera, so callers gate this on `isAvailable`.
+// `UIImagePickerController` wrapper for live camera capture
 struct CameraPicker: UIViewControllerRepresentable {
     static var isAvailable: Bool {
         UIImagePickerController.isSourceTypeAvailable(.camera)
     }
 
-    /// Called with the captured image, or `nil` if the user cancelled. The caller
-    /// owns dismissal — reading `@Environment(\.dismiss)` from the coordinator's
-    /// copy of this struct is not reliable.
+    // called with the captured image, or `nil` if the user cancelled
     var onFinish: (UIImage?) -> Void
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -35,8 +32,7 @@ struct CameraPicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController,
                                    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             let picked = (info[.editedImage] as? UIImage) ?? (info[.originalImage] as? UIImage)
-            // Normalize here so everything downstream — display, colour analysis,
-            // Vision and storage — sees an upright image.
+            // fix orientation once here
             onFinish(picked?.normalizedUp())
         }
 
@@ -46,7 +42,7 @@ struct CameraPicker: UIViewControllerRepresentable {
     }
 }
 
-/// `UIActivityViewController` wrapper used to hand DPW exports to Files, Mail, AirDrop.
+// `UIActivityViewController` wrapper used to hand DPW exports to Files, Mail, AirDrop
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
 
@@ -59,14 +55,7 @@ struct ShareSheet: UIViewControllerRepresentable {
 
 // MARK: - Demo photos
 
-/// Procedurally drawn storm scenes, so the triage flow can be exercised in a
-/// simulator with an empty photo library.
-///
-/// These are illustrations, not photographs, and the UI labels them as such. They
-/// are built to be genuinely separable by the triage engine: measured on these
-/// exact scenes, the flooded road scores 0.85 water coverage and the dry road with
-/// a fallen tree scores 0.14, so the engine reaches different conclusions for real
-/// reasons rather than being handed the answer.
+// procedurally drawn storm scenes
 enum DemoPhoto {
     enum Scene: String, CaseIterable, Identifiable {
         case floodedRoad
@@ -92,9 +81,7 @@ enum DemoPhoto {
     static func image(_ scene: Scene, size: CGSize = CGSize(width: 1024, height: 768)) -> UIImage {
         UIGraphicsImageRenderer(size: size).image { context in
             let cg = context.cgContext
-            // UIGraphicsImageRenderer hands us a flipped (top-left origin) context.
-            // Flip back so this drawing code matches the bottom-left-origin maths
-            // the scenes were designed and measured in.
+            // UIGraphicsImageRenderer hands us a flipped (top-left origin) context
             cg.translateBy(x: 0, y: size.height)
             cg.scaleBy(x: 1, y: -1)
             switch scene {
@@ -161,7 +148,7 @@ enum DemoPhoto {
         cg.clip(to: CGRect(x: 0, y: 0, width: w, height: horizon))
         cg.drawLinearGradient(water, start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: horizon), options: [])
 
-        // Reflection streaks, longer and softer closer to the camera.
+        // reflection streaks, longer and softer closer to the camera
         for _ in 0..<220 {
             let y = CGFloat.random(in: 0...horizon)
             let depth = 1 - (y / horizon)
@@ -171,7 +158,7 @@ enum DemoPhoto {
                            height: CGFloat.random(in: 2...7)))
         }
 
-        // Centre line disappearing under the water.
+        // centre line disappearing under the water
         var y = horizon * 0.06
         while y < horizon * 0.92 {
             let depth = 1 - (y / horizon)
@@ -182,7 +169,7 @@ enum DemoPhoto {
         }
         cg.restoreGState()
 
-        // Utility pole with a drooping span.
+        // utility pole with a drooping span
         cg.setFillColor(rgb(74, 62, 52))
         cg.fill(CGRect(x: w * 0.76, y: horizon - h * 0.02, width: 13, height: h * 0.36))
         cg.fill(CGRect(x: w * 0.72, y: horizon + h * 0.26, width: 90, height: 9))
@@ -210,7 +197,7 @@ enum DemoPhoto {
         cg.drawLinearGradient(road, start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: horizon), options: [])
         cg.restoreGState()
 
-        // Trunk lying across both lanes.
+        // trunk lying across both lanes
         cg.saveGState()
         cg.translateBy(x: w * 0.5, y: horizon * 0.55)
         cg.rotate(by: -0.16)
@@ -218,7 +205,7 @@ enum DemoPhoto {
         cg.fill(CGRect(x: -w * 0.55, y: -26, width: w * 1.1, height: 52))
         cg.restoreGState()
 
-        // Canopy scattered around the trunk.
+        // canopy scattered around the trunk
         for _ in 0..<130 {
             let shade = Double.random(in: 0...1)
             cg.setFillColor(rgb(30 + shade * 40, 62 + shade * 48, 34 + shade * 30, 0.95))

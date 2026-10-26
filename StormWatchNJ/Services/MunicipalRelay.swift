@@ -1,11 +1,6 @@
 import Foundation
 
-/// Files a report with the backend's Open311 GeoReport v2 endpoint,
-/// which stores it, publishes it in the GeoJSON feed and forwards it to the
-/// town's public works desk if that town has opted in.
-///
-/// The photo is not uploaded — it stays on the device, as the app promises — so
-/// `media_url` is never sent.
+// files a report with the backend's Open311 GeoReport v2 endpoint
 enum MunicipalRelay {
     enum RelayError: LocalizedError {
         case notConfigured
@@ -21,7 +16,7 @@ enum MunicipalRelay {
         }
     }
 
-    /// Returns the `service_request_id` the backend assigned.
+    // returns the `service_request_id` the backend assigned
     static func send(_ report: HazardReport, sessionToken: String?) async throws -> String {
         guard let sessionToken else { throw RelayError.notConfigured }
 
@@ -41,10 +36,9 @@ enum MunicipalRelay {
         var request = URLRequest(url: SupabaseConfig.function("georeport/requests.json"))
         request.httpMethod = "POST"
         request.timeoutInterval = 15
-        // Open311 specifies form encoding for POST, not JSON.
+        // Open311 specifies form encoding for POST, not JSON
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        // The session token is how the server knows who filed the report — which is
-        // what later lets that person, and only that person, remove it.
+        // the session token is how the server knows who filed the report
         request.setValue(SupabaseConfig.publishableKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization")
         request.httpBody = fields
@@ -72,8 +66,7 @@ enum MunicipalRelay {
         let description: String
     }
 
-    /// Strict form encoding: `urlQueryAllowed` leaves `&`, `+` and `=` intact,
-    /// which would corrupt a description containing any of them.
+    // strict form encoding: `urlQueryAllowed` leaves `&`, `+` and `=` intact
     private static func formEncode(_ value: String) -> String {
         var allowed = CharacterSet.alphanumerics
         allowed.insert(charactersIn: "-._~")
@@ -81,11 +74,7 @@ enum MunicipalRelay {
     }
 }
 
-/// Runs the after-posting work for a report: resolve its street address, then
-/// forward it to the municipal relay if the resident has turned that on.
-///
-/// Kept off the submit path so posting stays instant and works offline; the
-/// report is already saved locally before any of this starts.
+// runs the after-posting work for a report
 @MainActor
 enum ReportFollowUp {
     static func run(for report: HazardReport, store: HazardStore,
@@ -101,7 +90,7 @@ enum ReportFollowUp {
         await forward(current, store: store, settings: settings, account: account)
     }
 
-    /// Returns nil on success, or a message to show.
+    // returns nil on success, or a message to show
     @discardableResult
     static func forward(_ report: HazardReport, store: HazardStore,
                         settings: AppSettings, account: AccountStore) async -> String? {

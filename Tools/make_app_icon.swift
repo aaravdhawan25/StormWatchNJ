@@ -1,8 +1,4 @@
-// Renders Assets.xcassets/AppIcon.appiconset/AppIcon.png (1024x1024, opaque).
-//
-//   swift Tools/make_app_icon.swift StormWatchNJ/Assets.xcassets/AppIcon.appiconset/AppIcon.png
-//
-// Drawn in code so the icon is reproducible and reviewable in the diff.
+// renders Assets.xcassets/AppIcon.appiconset/AppIcon.png
 
 import CoreGraphics
 import Foundation
@@ -25,7 +21,7 @@ func rgb(_ r: Double, _ g: Double, _ b: Double, _ a: Double = 1) -> CGColor {
     CGColor(red: r / 255, green: g / 255, blue: b / 255, alpha: a)
 }
 
-// Storm sky: deep navy falling to a teal horizon.
+// storm sky: deep navy falling to a teal horizon
 let sky = CGGradient(colorsSpace: space,
                      colors: [rgb(8, 22, 45), rgb(12, 45, 78), rgb(14, 92, 107)] as CFArray,
                      locations: [0, 0.55, 1])!
@@ -34,7 +30,7 @@ ctx.drawLinearGradient(sky,
                        end: CGPoint(x: 0, y: 0),
                        options: [])
 
-// Rain, angled across the upper two thirds.
+// rain, angled across the upper two thirds
 ctx.saveGState()
 ctx.setLineWidth(5)
 ctx.setStrokeColor(rgb(150, 205, 225, 0.22))
@@ -48,7 +44,7 @@ for _ in 0..<70 {
 ctx.strokePath()
 ctx.restoreGState()
 
-// Lightning bolt, centred and slightly above the waves.
+// lightning bolt, centred and slightly above the waves
 let bolt: [CGPoint] = [
     CGPoint(x: 566, y: 880), CGPoint(x: 372, y: 556), CGPoint(x: 486, y: 556),
     CGPoint(x: 430, y: 330), CGPoint(x: 648, y: 620), CGPoint(x: 524, y: 620),
@@ -63,7 +59,7 @@ ctx.setFillColor(rgb(255, 209, 102))
 ctx.fillPath()
 ctx.restoreGState()
 
-// Flood water: three stacked wave bands across the lower third.
+// flood water: three stacked wave bands across the lower third
 func wave(yBase: CGFloat, amplitude: CGFloat, phase: CGFloat) -> CGPath {
     let path = CGMutablePath()
     path.move(to: CGPoint(x: 0, y: 0))

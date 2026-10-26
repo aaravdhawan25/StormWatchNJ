@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A filled wave: a sine curve along the top edge, solid below it.
+// a filled wave: a sine curve along the top edge, solid below it
 struct WaveShape: Shape {
     var phase: CGFloat
     var amplitude: CGFloat = 10
@@ -28,15 +28,10 @@ struct WaveShape: Shape {
     }
 }
 
-/// The storm scene behind the welcome and sign-in screens: night sky, slanting
-/// rain and three bands of rising water — the same picture as the app icon.
-///
-/// Animation is drawn in a single `Canvas`, and stops entirely under Reduce
-/// Motion. There is deliberately no full-screen lightning flash: a flashing
-/// backdrop is unpleasant at best and a photosensitivity risk at worst.
+// the storm scene behind the welcome and sign-in screens
 struct StormBackdrop: View {
     var animated = true
-    /// How far up the screen the water reaches, 0...1.
+    // how far up the screen the water reaches, 0...1
     var waterLevel: CGFloat = 0.24
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -48,7 +43,7 @@ struct StormBackdrop: View {
                                     Color(red: 0.05, green: 0.32, blue: 0.40)],
                            startPoint: .top, endPoint: .bottom)
 
-            // Soft glow where the storm light comes through.
+            // soft glow where the storm light comes through
             RadialGradient(colors: [Theme.brightTeal.opacity(0.22), .clear],
                            center: UnitPoint(x: 0.5, y: 0.28), startRadius: 10, endRadius: 320)
 
@@ -73,7 +68,7 @@ struct StormBackdrop: View {
     private func drawRain(in context: inout GraphicsContext, size: CGSize, time: TimeInterval) {
         var streaks = Path()
         for index in 0..<90 {
-            // Cheap deterministic pseudo-random values, stable per drop.
+            // cheap deterministic pseudo-random values, stable per drop
             let seed = Double(index)
             let column = (sin(seed * 12.9898) * 43_758.5453).truncatingRemainder(dividingBy: 1).magnitude
             let offset = (sin(seed * 78.233) * 12_345.678).truncatingRemainder(dividingBy: 1).magnitude
@@ -108,7 +103,7 @@ struct StormBackdrop: View {
     }
 }
 
-/// The app's mark: a lightning bolt over water, matching the home-screen icon.
+// the app's mark: a lightning bolt over water, matching the home-screen icon
 struct AppLogoMark: View {
     var size: CGFloat = 96
 
@@ -142,8 +137,7 @@ struct AppLogoMark: View {
 }
 
 extension HazardType {
-    /// Each hazard gets its own colour family, so a list can be scanned by kind;
-    /// severity keeps its own red/orange/yellow signal alongside.
+    // each hazard gets its own colour family
     var gradient: [Color] {
         switch self {
         case .streetFlooding:
@@ -160,7 +154,7 @@ extension HazardType {
     }
 }
 
-/// Illustrated tile for a hazard type: gradient ground, soft highlight, glyph.
+// illustrated tile for a hazard type
 struct HazardGlyph: View {
     let type: HazardType
     var size: CGFloat = 52
@@ -169,7 +163,7 @@ struct HazardGlyph: View {
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
                 .fill(LinearGradient(colors: type.gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
-            // Glossy top-left highlight.
+            // glossy top-left highlight
             RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
                 .fill(LinearGradient(colors: [.white.opacity(0.32), .clear],
                                      startPoint: .topLeading, endPoint: .center))
@@ -184,9 +178,9 @@ struct HazardGlyph: View {
     }
 }
 
-/// A small tank that fills with water to show how close a river is to flooding.
+// a small tank that fills with water to show how close a river is to flooding
 struct LiquidGauge: View {
-    /// 0 = empty, 1 = at flood stage.
+    // 0 = empty, 1 = at flood stage
     let level: Double
     let tint: Color
     var size = CGSize(width: 44, height: 58)
@@ -205,7 +199,7 @@ struct LiquidGauge: View {
                         .frame(height: fill + 6)
                 }
             }
-            // Flood-stage line near the top.
+            // flood-stage line near the top
             VStack {
                 Rectangle().fill(Color.primary.opacity(0.35)).frame(height: 1.5).padding(.horizontal, 5)
                 Spacer()

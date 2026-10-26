@@ -3,16 +3,7 @@ import CryptoKit
 import Foundation
 import UIKit
 
-/// Google sign-in using the system web authentication session — OAuth 2.0
-/// authorization-code flow with PKCE, no third-party SDK.
-///
-/// It needs an **iOS OAuth client ID** from Google Cloud Console, set as
-/// `GoogleClientID` in Info.plist, and the same ID in the backend's
-/// `GOOGLE_CLIENT_IDS`. Until that is done `isConfigured` is false and the app
-/// hides the button rather than offering something that cannot work.
-///
-/// The app never sees a Google password. It receives an ID token and hands it to
-/// the backend, which checks it with Google before creating a session.
+// Google sign-in using the system web authentication session, OAuth 2.0
 enum GoogleSignIn {
     enum Failure: LocalizedError {
         case notConfigured
@@ -35,7 +26,7 @@ enum GoogleSignIn {
 
     static var isConfigured: Bool { clientID != nil }
 
-    /// Google's iOS redirect scheme is the client ID with its dotted parts reversed.
+    // Google's iOS redirect scheme is the reversed client ID
     private static func redirectScheme(for clientID: String) -> String {
         clientID.split(separator: ".").reversed().joined(separator: ".")
     }
@@ -63,7 +54,7 @@ enum GoogleSignIn {
 
         let callback = try await authenticate(url: components.url!, scheme: scheme)
         let items = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems ?? []
-        // A mismatched state means this response was not the answer to our request.
+        // a mismatched state means this response was not the answer to our request
         guard items.first(where: { $0.name == "state" })?.value == state,
               let code = items.first(where: { $0.name == "code" })?.value else {
             throw Failure.failed("The response from Google could not be verified.")
@@ -86,7 +77,7 @@ enum GoogleSignIn {
             }
             session.presentationContextProvider = anchor
             session.prefersEphemeralWebBrowserSession = false
-            // The system holds these weakly; keep them alive while the sheet is up.
+            // the system holds these weakly; keep them alive while the sheet is up
             activeSession = session
             activeAnchor = anchor
             if !session.start() {

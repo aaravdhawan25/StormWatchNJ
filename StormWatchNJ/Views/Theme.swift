@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// One place for colour, elevation and shape so every screen reads as one app.
+// one place for colour, elevation and shape so every screen reads as one app
 enum Theme {
     static let navy = Color(red: 0.04, green: 0.10, blue: 0.20)
     static let deep = Color(red: 0.05, green: 0.18, blue: 0.31)
@@ -17,7 +17,7 @@ enum Theme {
     static let cardCorner: CGFloat = 16
 }
 
-/// Standard raised card used by the list, river and report screens.
+// standard raised card used by the list, river and report screens
 struct CardBackground: ViewModifier {
     var padding: CGFloat = 14
 
@@ -41,7 +41,7 @@ extension View {
         modifier(CardBackground(padding: padding))
     }
 
-    /// Hides the default list chrome so cards can sit directly on the background.
+    // hides the default list chrome so cards can sit directly on the background
     func plainCardRow() -> some View {
         listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
@@ -49,7 +49,7 @@ extension View {
     }
 }
 
-/// Gradient screen header with a title, subtitle and optional trailing content.
+// gradient screen header with a title, subtitle and optional trailing content
 struct StormHeader<Trailing: View>: View {
     let title: String
     let subtitle: String
@@ -73,8 +73,7 @@ struct StormHeader<Trailing: View>: View {
         .padding(.bottom, 34)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(alignment: .bottom) {
-            // Storm sky that ends in water: the lowest wave is the page colour,
-            // so the header's edge is a wave rather than a hard line.
+            // storm sky that ends in water
             ZStack(alignment: .bottom) {
                 Theme.headerGradient
                 RadialGradient(colors: [Theme.brightTeal.opacity(0.35), .clear],
@@ -100,7 +99,7 @@ extension StormHeader where Trailing == EmptyView {
     }
 }
 
-/// Small stat readout used in the map overlay and the DPW console.
+// small stat readout used in the map overlay and the DPW console
 struct StatTile: View {
     let value: String
     let label: String
@@ -127,7 +126,7 @@ struct StatTile: View {
     }
 }
 
-/// Circular confidence readout for the triage result.
+// circular confidence readout for the triage result
 struct ConfidenceRing: View {
     let value: Double
     let tint: Color
@@ -152,7 +151,7 @@ struct ConfidenceRing: View {
     }
 }
 
-/// Small rounded label used for evidence and filters.
+// small rounded label used for evidence and filters
 struct Chip: View {
     let text: String
     var symbol: String?

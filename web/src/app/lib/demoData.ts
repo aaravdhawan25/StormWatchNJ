@@ -1,6 +1,6 @@
 import type { Hazard, HazardType, RoadStatus, Severity } from "./models";
 
-// Fictional sample data, the same set the iPhone app seeds. Not real incidents.
+// fictional sample data, the same set the iPhone app seeds
 function make(id: string, t: HazardType, s: Severity, r: RoadStatus, wires: boolean, details: string,
               lat: number, lon: number, town: string, status: Hazard["status"], upvotes: number, agoSec: number,
               simulated = false): Hazard {
@@ -52,9 +52,8 @@ const TOWNS: [string, number, number][] = [
   ["Pemberton", 39.9718, -74.6829], ["Squankum", 40.159, -74.1329],
 ];
 
-/** Nearest town in a small offline list, as the iPhone app does. */
-/** The nearest town in the list, but only if it is close by (about 8 miles):
- *  the list covers central NJ, so elsewhere it would name the wrong town. */
+// nearest town in a small offline list, as the iPhone app does
+// the nearest town in the list, but only if it is close by
 export function nearbyTown(p: { latitude: number; longitude: number }): string | null {
   const name = nearestTown(p);
   const t = TOWNS.find(x => x[0] === name)!;

@@ -1,19 +1,13 @@
 import Foundation
 
-/// Polls the USGS Water Services instantaneous-values REST API for gage height
-/// (parameter `00065`) at the New Jersey sites in `NJStationCatalog`.
-///
-/// The API is public and needs no key, so the app talks to it directly instead of
-/// going through the StormWatch backend. The `usgs_worker.py` script in `backend/`
-/// does the same polling server-side on a 15-minute schedule.
+// polls USGS for river gage height
 @MainActor
 final class USGSService: ObservableObject {
     @Published private(set) var stations: [USGSStation] = NJStationCatalog.stations
     @Published private(set) var isLoading = false
     @Published private(set) var lastRefreshed: Date?
     @Published private(set) var lastError: String?
-    /// Set while "Simulate Nor'easter" is on, so a background refresh does not
-    /// overwrite the storm readings with live calm-weather data.
+    // set while "Simulate Nor'easter" is on
     @Published var isSimulating = false
 
     private let session: URLSession
@@ -52,8 +46,7 @@ final class USGSService: ObservableObject {
         }
     }
 
-    /// Pushes every gauge to or past flood stage so the map and alerts can be
-    /// demonstrated on a clear day. Clearly labelled as simulated in the UI.
+    // push every gauge past flood stage for the demo
     func applySimulatedStorm() {
         isSimulating = true
         stations = stations.map { station in
@@ -78,7 +71,7 @@ final class USGSService: ObservableObject {
     private struct Reading {
         let heightFt: Double
         let timestamp: Date?
-        /// USGS's own name for the site, adopted so the catalog cannot drift.
+        // USGS's own name for the site, adopted so the catalog cannot drift
         let siteName: String
     }
 
@@ -105,9 +98,9 @@ final class USGSService: ObservableObject {
             guard let siteCode = series.sourceInfo.siteCode.first?.value,
                   let point = series.values.first?.value.last,
                   let height = Double(point.value),
-                  // USGS uses -999999 as its "no data" sentinel.
+                  // USGS uses -999999 as its "no data" sentinel
                   height > -900_000 else { continue }
-            // USGS suffixes every site name with " NJ"; the county is shown separately.
+            // USGS suffixes every site name with " NJ"
             let name = series.sourceInfo.siteName.replacingOccurrences(of: " NJ", with: "")
             readings[siteCode] = Reading(heightFt: height,
                                          timestamp: formatter.date(from: point.dateTime),

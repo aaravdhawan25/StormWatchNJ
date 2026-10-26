@@ -50,7 +50,7 @@ struct RiverGaugeScreen: View {
         }
     }
 
-    /// Entry points to flood alerts and shelters, with the live alert count up front.
+    // entry points to flood alerts and shelters, with the live alert count up front
     private var safetyLinks: some View {
         HStack(spacing: 10) {
             NavigationLink { FloodAlertsScreen() } label: {

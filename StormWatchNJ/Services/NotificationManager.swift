@@ -3,26 +3,11 @@ import CoreLocation
 import Foundation
 import UserNotifications
 
-/// Decides what is worth interrupting someone for, and tells them.
-///
-/// These are **local** notifications: the app raises them itself after checking
-/// the server, either while it is open or when iOS wakes it for a background
-/// refresh. They are not server push. iOS decides when background refresh runs —
-/// often within the hour for an app used daily, never if the app was force-quit —
-/// so this is a useful heads-up, not a guaranteed emergency alert. Instant push
-/// would need the Apple Developer Program and an APNs sender on the server.
-///
-/// Three things qualify:
-///   * a flood alert coming into effect where you are,
-///   * a new impassable hazard or downed wire inside your search radius, and
-///   * a change to a report you filed: a crew assigned, resolved, or removed.
-///
-/// River gauges do not notify. Their flood thresholds in this build are demo
-/// values, and an alarming notification should not rest on a placeholder.
+// decides what is worth interrupting someone for, and tells them
 @MainActor
 final class NotificationManager: NSObject, ObservableObject {
     @Published private(set) var authorization: UNAuthorizationStatus = .notDetermined
-    /// Set when a notification is tapped; RootView switches to this tab.
+    // set when a notification is tapped; RootView switches to this tab
     @Published var pendingTab: Int?
 
     @Published var floodAlertsEnabled: Bool { didSet { defaults.set(floodAlertsEnabled, forKey: Keys.flood) } }
@@ -62,8 +47,7 @@ final class NotificationManager: NSObject, ObservableObject {
         authorization = await center.notificationSettings().authorizationStatus
     }
 
-    /// Shows the system permission prompt, once. After a refusal only the
-    /// Settings app can turn notifications back on.
+    // shows the system permission prompt, once
     func requestPermission() async {
         _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
         await refreshAuthorization()
@@ -71,7 +55,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
     // MARK: - Where "nearby" is
 
-    /// Remembered so a background refresh, which has no map, knows the area.
+    // remembered so a background refresh, which has no map, knows the area
     func updateArea(_ coordinate: CLLocationCoordinate2D, radiusMiles: Double) {
         defaults.set(coordinate.latitude, forKey: Keys.latitude)
         defaults.set(coordinate.longitude, forKey: Keys.longitude)
@@ -91,14 +75,13 @@ final class NotificationManager: NSObject, ObservableObject {
 
     // MARK: - Hazards
 
-    /// Compares the shared hazard list with what was there last time.
+    // compares the shared hazard list with what was there last time
     func process(hazards: [ServerHazard], accountID: String?) {
         guard let accountID else { return }
         let currentIDs = Set(hazards.map(\.id))
         let currentMine = Dictionary(uniqueKeysWithValues: hazards.filter(\.is_mine).map { ($0.id, $0.status) })
 
-        // First look for this account on this phone: remember what exists and say
-        // nothing. Otherwise signing in would announce every hazard already on the map.
+        // first look for this account on this phone
         guard defaults.string(forKey: Keys.account) == accountID else {
             defaults.set(accountID, forKey: Keys.account)
             defaults.set(Array(currentIDs), forKey: Keys.knownHazards)
@@ -118,7 +101,7 @@ final class NotificationManager: NSObject, ObservableObject {
                 let type = HazardType(rawValue: hazard.report_type)?.label ?? "Hazard"
                 let place = hazard.municipality.map { " in \($0)" } ?? ""
                 send(id: "hazard-\(hazard.id)",
-                     // Kept short: a long title is cut off in the banner.
+                     // kept short: a long title is cut off in the banner
                      title: hazard.utility_lines_involved ? "⚡️ \(type) with wires nearby" : "\(type) nearby",
                      body: String(format: "%.1f mi away%@. %@", miles, place, hazard.description),
                      tab: 1)
@@ -146,23 +129,21 @@ final class NotificationManager: NSObject, ObservableObject {
         defaults.set(currentMine, forKey: Keys.myStatuses)
     }
 
-    /// Call when the person removes their own report, so it is not then announced
-    /// to them as having "come off the map".
+    // call when the person removes their own report
     func forgetMyReport(_ id: String) {
         var mine = (defaults.dictionary(forKey: Keys.myStatuses) as? [String: String]) ?? [:]
         mine.removeValue(forKey: id)
         defaults.set(mine, forKey: Keys.myStatuses)
     }
 
-    /// Forget everything on sign-out; the next account starts fresh.
+    // forget everything on sign-out; the next account starts fresh
     func reset() {
         [Keys.account, Keys.knownHazards, Keys.myStatuses].forEach(defaults.removeObject)
     }
 
     // MARK: - Flood alerts
 
-    /// Announces alerts in effect at the person's own location. Callers pass only
-    /// the home-area result — not a lookup of some other ZIP code.
+    // announces alerts in effect at the person's own location
     func process(alerts: [FloodAlert]) {
         guard floodAlertsEnabled else { return }
         var notified = defaults.stringArray(forKey: Keys.notifiedAlerts) ?? []
@@ -186,13 +167,13 @@ final class NotificationManager: NSObject, ObservableObject {
         content.body = body
         content.sound = .default
         content.userInfo = ["tab": tab]
-        // Using a stable identifier means the same event can never stack up twice.
+        // using a stable identifier means the same event can never stack up twice
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
     }
 }
 
 extension NotificationManager: UNUserNotificationCenterDelegate {
-    /// Show the banner even while the app is open; the event is just as important.
+    // show the banner even while the app is open
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
                                             willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound]
@@ -205,8 +186,7 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
     }
 }
 
-/// The long-lived objects, shared so a background refresh updates the same
-/// stores the screens are showing instead of a second copy.
+// shared app objects, also used by background refresh
 @MainActor
 final class AppServices {
     static let shared = AppServices()
@@ -219,7 +199,7 @@ final class AppServices {
     let floodAlerts = FloodAlertService()
     let notifications = NotificationManager()
 
-    /// Checks the server and raises any notifications that are due.
+    // checks the server and raises any notifications that are due
     func refreshForNotifications() async {
         await HazardSync.pull(into: store, account: account)
         guard account.isSignedIn else { return }
@@ -228,12 +208,11 @@ final class AppServices {
     }
 }
 
-/// Asks iOS to wake the app now and then to check for something worth a
-/// notification. iOS chooses the moment; this only says "no sooner than".
+// asks iOS to wake the app now and then to check for something worth a notification
 enum BackgroundRefresh {
     static let identifier = "com.stormwatchnj.refresh"
 
-    /// Must run before the app finishes launching.
+    // must run before the app finishes launching
     static func register() {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: identifier, using: nil) { task in
             let work = Task { @MainActor in

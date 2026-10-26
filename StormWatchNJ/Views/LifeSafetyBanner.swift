@@ -1,13 +1,9 @@
 import SwiftUI
 import UIKit
 
-/// The red alert shown whenever a report involves utility lines.
-///
-/// It leads with what to do with your body — stay back — before anything about
-/// reporting, and puts 911 ahead of the utility. Every button opens the dialer;
-/// iOS asks for confirmation before a call is placed, so nothing dials by accident.
+// the red alert shown whenever a report involves utility lines
 struct LifeSafetyBanner: View {
-    /// Street address to read to the dispatcher, when known.
+    // street address to read to the dispatcher, when known
     var locationText: String?
 
     @State private var unavailable: Unavailable?
@@ -82,8 +78,7 @@ struct LifeSafetyBanner: View {
         .buttonStyle(.plain)
     }
 
-    /// Falls back to showing the number when the device has no dialer — an iPad,
-    /// or the simulator — rather than failing silently on a safety action.
+    // show the number if the device can't call
     private func open(_ url: URL, label: String, number: String) {
         UIApplication.shared.open(url, options: [:]) { opened in
             if !opened { unavailable = Unavailable(label: label, number: number) }

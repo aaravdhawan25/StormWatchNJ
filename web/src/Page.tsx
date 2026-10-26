@@ -11,7 +11,7 @@ function useClock() {
   return now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).replace(/\s?[AP]M/i, "");
 }
 
-/** On a phone the app fills the screen; on a computer it sits in an iPhone frame. */
+// on a phone the app fills the screen
 export function Page() {
   const [phoneSized, setPhoneSized] = useState(() => window.innerWidth < 600);
   const [scale, setScale] = useState(1);

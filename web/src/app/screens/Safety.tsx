@@ -6,7 +6,7 @@ import { FEMA_TEXT_NUMBER, HISTORY_DAYS, SHELTER_RADIUS_MILES, alertColor, fetch
 import { useStore } from "../lib/store";
 import { canCallAndText } from "../lib/device";
 
-/** Which place a lookup is about: where you are, or a ZIP typed in. */
+// which place a lookup is about: where you are, or a ZIP typed in
 function useArea() {
   const { location } = useStore();
   const [zip, setZip] = useState("");

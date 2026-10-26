@@ -26,7 +26,7 @@ export function ReportScreen() {
   const [wires, setWires] = useState(false);
   const [details, setDetails] = useState("");
   const [posting, setPosting] = useState(false);
-  // The real address once a photo is in; the built-in town list only nearby.
+  // the real address once a photo is in; the built-in town list only nearby
   const [place, setPlace] = useState<Place | null>(null);
   const town = place?.city ?? nearbyTownFor(store.location) ?? "New Jersey";
   useEffect(() => {
@@ -46,7 +46,7 @@ export function ReportScreen() {
   const triage = async (blob: Blob) => {
     setAnalyzing(true); setError(null); setAnalysis(null);
     try {
-      // Always OpenAI, as in the app; the on-device analysis is only the fallback.
+      // always OpenAI, as in the app
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       try { apply(await analyzeWithOpenAI(blob, token)); }
       catch (e) { setError(`${(e as Error).message} Used on-device analysis instead.`); apply(await analyzeOnDevice(blob, town)); }
@@ -56,7 +56,7 @@ export function ReportScreen() {
   const take = (blob: Blob) => { const url = URL.createObjectURL(blob); setPhoto({ blob, url }); triage(blob); };
   const useDemo = async (file: string) => take(await (await fetch(file)).blob());
 
-  // Same checks as the app's camera button: no camera → explain; blocked → say so.
+  // same checks as the app's camera button
   const takePhoto = async () => {
     if (!(await hasCamera())) {
       nav.dialog({ title: "Camera access not granted",

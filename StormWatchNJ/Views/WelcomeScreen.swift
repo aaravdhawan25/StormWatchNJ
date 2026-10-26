@@ -1,9 +1,6 @@
 import SwiftUI
 
-/// The first thing anyone sees: the storm scene, what the app does, and the way in.
-///
-/// Everyone signs in. Votes and removals only mean something when each one is
-/// tied to a person, so there is no anonymous mode to fall back to.
+// the first thing anyone sees
 struct WelcomeScreen: View {
     @State private var route: AuthRoute?
     @State private var appeared = false
@@ -77,7 +74,7 @@ struct WelcomeScreen: View {
             .onAppear {
                 withAnimation(.spring(duration: 0.8, bounce: 0.3)) { appeared = true }
             }
-            // Light status bar over the night sky.
+            // light status bar over the night sky
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .preferredColorScheme(.dark)

@@ -1,10 +1,7 @@
 import Foundation
 import Security
 
-/// Minimal Keychain storage for the session token.
-///
-/// The token is a bearer credential, so it does not belong in `UserDefaults`,
-/// which is a plain file that ends up in backups.
+// minimal Keychain storage for the session token
 enum Keychain {
     private static let service = "com.stormwatchnj.session"
 

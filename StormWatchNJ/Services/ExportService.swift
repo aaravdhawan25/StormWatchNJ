@@ -1,7 +1,6 @@
 import Foundation
 
-/// Builds the municipal DPW feeds described in the blueprint: RFC 7946 GeoJSON
-/// for GIS ingest and a flat CSV for dispatch spreadsheets.
+// builds the municipal DPW feeds described in the blueprint
 enum ExportService {
     static func geoJSON(from reports: [HazardReport]) -> String {
         let formatter = ISO8601DateFormatter()
@@ -10,7 +9,7 @@ enum ExportService {
                 "type": "Feature",
                 "geometry": [
                     "type": "Point",
-                    // GeoJSON is longitude-first, matching PostGIS ST_MakePoint.
+                    // GeoJSON is longitude-first, matching PostGIS ST_MakePoint
                     "coordinates": [report.longitude, report.latitude]
                 ],
                 "properties": [
@@ -66,7 +65,7 @@ enum ExportService {
         return ([header] + rows).joined(separator: "\n")
     }
 
-    /// Writes `contents` into a temp file so it can go through the share sheet.
+    // writes `contents` into a temp file so it can go through the share sheet
     static func temporaryFile(named name: String, contents: String) -> URL? {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
         do {

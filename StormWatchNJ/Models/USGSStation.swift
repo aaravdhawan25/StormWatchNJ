@@ -27,17 +27,17 @@ enum GaugeAlert: String, Codable, CaseIterable {
     }
 }
 
-/// A New Jersey river gauge polled from the USGS Water Services API.
+// a New Jersey river gauge polled from the USGS Water Services API
 struct USGSStation: Identifiable, Codable, Hashable {
-    /// USGS site number, e.g. `01400500` (Millstone River at Blackwells Mills).
+    // USGS site number, e.g. `01400500` (Millstone River at Blackwells Mills)
     let siteID: String
     var stationName: String
     var county: String
     var latitude: Double
     var longitude: Double
-    /// Threshold at which crews stage equipment.
+    // threshold at which crews stage equipment
     var actionStageFt: Double
-    /// Threshold at which low-lying roads begin to flood.
+    // threshold at which low-lying roads begin to flood
     var floodStageFt: Double
     var currentGaugeHeightFt: Double?
     var lastUpdated: Date?
@@ -56,7 +56,7 @@ struct USGSStation: Identifiable, Codable, Hashable {
         return .normal
     }
 
-    /// How close the river is to flood stage, clamped to 0...1 for the gauge bar.
+    // how close the river is to flood stage, clamped to 0...1 for the gauge bar
     var floodProgress: Double {
         guard let height = currentGaugeHeightFt, floodStageFt > 0 else { return 0 }
         return min(max(height / floodStageFt, 0), 1)

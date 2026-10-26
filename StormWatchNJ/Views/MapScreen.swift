@@ -13,11 +13,10 @@ struct MapScreen: View {
         MKCoordinateRegion(center: NJServiceArea.demoCenter,
                            span: MKCoordinateSpan(latitudeDelta: 0.28, longitudeDelta: 0.28))
     )
-    /// One sheet state for both pin kinds — stacking two `.sheet` modifiers on the
-    /// same view does not reliably present both.
+    // one sheet for both pin types
     @State private var sheet: MapSheet?
     @State private var showGauges = true
-    /// Set once the camera has been moved to the first usable coordinate.
+    // set once the camera has been moved to the first usable coordinate
     @State private var hasCentred = false
 
     private var visibleReports: [HazardReport] {
@@ -61,8 +60,7 @@ struct MapScreen: View {
                 }
                 .presentationDetents([.medium, .large])
             }
-            // Move the camera to the first usable coordinate, then leave it alone
-            // so the map does not fight the user's panning.
+            // center once on the first location, then leave the map alone
             .onChange(of: location.coordinate.latitude) { _, _ in
                 guard !hasCentred else { return }
                 hasCentred = true
@@ -174,8 +172,7 @@ struct MapScreen: View {
             .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
     }
 
-    /// Floating card for the most severe nearby hazard — the thing a commuter
-    /// most needs to know without hunting for a pin.
+    // card for the worst hazard nearby
     @ViewBuilder
     private var nearestCard: some View {
         if let report = worstNearby {
@@ -220,7 +217,7 @@ struct MapScreen: View {
     }
 }
 
-/// What the map's single sheet is currently showing.
+// what the map's single sheet is currently showing
 enum MapSheet: Identifiable {
     case report(HazardReport)
     case station(USGSStation)

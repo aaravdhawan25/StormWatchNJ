@@ -6,7 +6,7 @@ import { GOOGLE_ENABLED, supabase } from "../lib/config";
 
 interface Town { domain: string; name: string; county: string }
 
-/** Sign in, create an account, and confirm the emailed code — same rules as the iPhone app. */
+// sign in, create an account
 export function AuthScreen({ kind: initialKind, creating: initialCreating, onBack }:
   { kind: "resident" | "township"; creating: boolean; onBack: () => void }) {
   const [kind, setKind] = useState(initialKind);
@@ -55,8 +55,7 @@ export function AuthScreen({ kind: initialKind, creating: initialCreating, onBac
     }
   });
 
-  // Same rules as the iPhone app: a township sign-in needs a Google account on a
-  // listed municipal domain. If it isn't one, the new session is signed out again.
+  // same rules as the iPhone app
   const signInWithGoogle = async (token: string, nonce: string) => {
     const { data, error } = await supabase.auth.signInWithIdToken({ provider: "google", token, nonce });
     if (error) throw error;
@@ -66,9 +65,7 @@ export function AuthScreen({ kind: initialKind, creating: initialCreating, onBac
     if (data.user?.user_metadata?.account_type !== "township") await supabase.auth.updateUser({ data: { account_type: "township" } });
   };
 
-  // After the person taps the link (often in another tab or on their phone),
-  // their password signs them in. Checked by the button and whenever they
-  // come back to this tab.
+  // after the person taps the link
   const checkConfirmed = async (quiet: boolean) => {
     if (!pending || !password) return;
     const { error } = await supabase.auth.signInWithPassword({ email: pending, password });

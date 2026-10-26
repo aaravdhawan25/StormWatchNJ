@@ -1,11 +1,10 @@
-// Live public data — the same federal sources the iPhone app uses, called
-// straight from the browser (all of them allow it).
+// live public data, same sources as the iPhone app
 
 // ---------- USGS river gauges ----------
 
 export interface Station {
   siteID: string; name: string; county: string; latitude: number; longitude: number;
-  /** Demo thresholds, as in the iPhone app — not official NWS flood stages. */
+  // demo thresholds, as in the iPhone app, not official NWS flood stages
   actionStageFt: number; floodStageFt: number;
   heightFt?: number; readingTime?: string;
 }
@@ -45,7 +44,7 @@ export async function fetchGauges(): Promise<Station[]> {
     const code = ts.sourceInfo.siteCode[0].value;
     const point = ts.values?.[0]?.value?.at(-1);
     const h = point ? Number(point.value) : NaN;
-    // USGS uses -999999 as its "no data" sentinel.
+    // USGS uses -999999 as its "no data" sentinel
     if (point && !Number.isNaN(h) && h > -900000) readings.set(code, { h, t: point.dateTime, name: ts.sourceInfo.siteName.replace(" NJ", "") });
   }
   return STATIONS.map(s => {
@@ -66,7 +65,7 @@ export const alertColor = (sev: string) =>
 
 const isFlood = (e: string) => e.toLowerCase().includes("flood");
 
-/** In effect now, from the National Weather Service. */
+// in effect now, from the National Weather Service
 export async function fetchLiveAlerts(lat: number, lon: number): Promise<FloodAlert[]> {
   const res = await fetch(`https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lon.toFixed(4)}`,
                           { headers: { Accept: "application/geo+json" } });
@@ -84,7 +83,7 @@ export async function fetchLiveAlerts(lat: number, lon: number): Promise<FloodAl
 
 export const HISTORY_DAYS = 90;
 
-/** FEMA OpenFEMA IPAWS archive — published a day late on purpose, so history only. */
+// FEMA OpenFEMA IPAWS archive, published a day late on purpose
 export async function fetchAlertHistory(lat: number, lon: number): Promise<FloodAlert[]> {
   const since = new Date(Date.now() - HISTORY_DAYS * 86400000).toISOString();
   const params = new URLSearchParams({
@@ -155,7 +154,7 @@ export async function fetchShelters(lat: number, lon: number): Promise<Shelter[]
   }).sort((x: Shelter, y: Shelter) => (x.miles ?? Infinity) - (y.miles ?? Infinity));
 }
 
-// ---------- Geocoding (OpenStreetMap Nominatim; Apple's geocoder is iOS-only) ----------
+// ---------- geocoding (OpenStreetMap Nominatim)
 
 export interface Place { street?: string; city?: string; zip?: string; line?: string }
 
@@ -176,8 +175,7 @@ export async function reverseGeocode(lat: number, lon: number): Promise<Place | 
 
 export async function zipToPoint(zip: string): Promise<{ latitude: number; longitude: number } | null> {
   try {
-    // Nominatim returns nothing when postalcode and state are combined, so search
-    // by ZIP alone and check the answer is actually in New Jersey.
+    // Nominatim returns nothing when postalcode and state are combined
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&postalcode=${zip}&countrycodes=us&limit=1`,
                             { signal: AbortSignal.timeout(6000) });
     const hit = (await res.json())[0];

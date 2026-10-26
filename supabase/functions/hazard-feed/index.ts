@@ -1,11 +1,4 @@
-// Open GIS layer of StormWatch NJ hazards, as RFC 7946 GeoJSON.
-//
-//   GET /hazard-feed            open hazards
-//   GET /hazard-feed?status=all includes resolved ones
-//
-// Paste the URL into ArcGIS Online ("Add layer from URL" → GeoJSON) or QGIS
-// ("Add Vector Layer" → Protocol) for a live storm layer. Public by design: it
-// carries no reporter information, only what is already on the map.
+// open GIS layer of StormWatch NJ hazards, as RFC 7946 GeoJSON
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const CORS = { "Access-Control-Allow-Origin": "*" };
@@ -30,7 +23,7 @@ Deno.serve(async (req) => {
     features: data.map((h) => ({
       type: "Feature",
       id: h.id,
-      // GeoJSON is longitude-first.
+      // GeoJSON is longitude-first
       geometry: { type: "Point", coordinates: [h.longitude, h.latitude] },
       properties: {
         report_type: h.report_type,

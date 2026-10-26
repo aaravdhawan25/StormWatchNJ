@@ -15,21 +15,21 @@ import "./app.css";
 
 type Tab = "map" | "nearby" | "dpw" | "report" | "alerts" | "settings";
 
-/** The app itself: welcome until signed in, then five tabs — the same as the iPhone app. */
+// the app itself: welcome until signed in, then five tabs, the same as the iPhone app
 export function AppRoot() {
   const { account, authReady } = useStore();
   const [tab, setTab] = useState<Tab>("map");
   const [link, setLink] = useState(emailLink);
   const township = account?.role === "township";
 
-  // Township staff get the DPW console in place of Nearby, as on iPhone.
+  // township staff get the DPW console in place of Nearby, as on iPhone
   useEffect(() => {
     if (township && tab === "nearby") setTab("dpw");
     if (!township && tab === "dpw") setTab("nearby");
   }, [township]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!account) setTab("map"); }, [account]);
 
-  // A tapped notification says which tab to open.
+  // a tapped notification says which tab to open
   useEffect(() => {
     const open = (target?: string) => {
       if (target === "alerts") setTab("alerts");

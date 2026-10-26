@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GOOGLE_CLIENT_ID } from "../lib/config";
 
-// Google's own sign-in button (Google Identity Services). Google hands back an
-// ID token, which Supabase exchanges for a session — the same token exchange
-// the iPhone app uses, so both sign in to the same account.
+// Google's own sign-in button
 
 declare global {
   interface Window {
@@ -33,12 +31,11 @@ async function sha256(text: string) {
   return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Calls `onToken(idToken, nonce)` after the person picks a Google account. */
+// calls `onToken(idToken, nonce)` after the person picks a Google account
 export function GoogleButton({ onToken, onError, disabled }:
   { onToken: (idToken: string, nonce: string) => void; onError: (message: string) => void; disabled?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
-  // Google only draws its button once it has checked this site is allowed to
-  // use the client ID. If it never appears, show our own button that explains.
+  // Google only shows its button if this site is allowed
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
   const latest = useRef(onToken);
   latest.current = onToken;
@@ -49,8 +46,7 @@ export function GoogleButton({ onToken, onError, disabled }:
       try {
         await loadGoogle();
         if (cancelled || !box.current || !window.google) return;
-        // A fresh nonce per button: Google signs the hash into the token and
-        // Supabase checks it against the raw value, so a token can't be replayed.
+        // a fresh nonce per button
         const nonce = crypto.randomUUID();
         window.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
@@ -92,8 +88,7 @@ export function GoogleButton({ onToken, onError, disabled }:
   );
 }
 
-// The desktop page shrinks the phone with a CSS transform; Google's button
-// takes its width in real pixels, so undo the scale when measuring.
+// the desktop page shrinks the phone with a CSS transform
 function scale(el: HTMLElement) {
   const r = el.getBoundingClientRect();
   return el.offsetWidth ? r.width / el.offsetWidth : 1;

@@ -5,10 +5,7 @@ import PhotosUI
 import SwiftUI
 import UIKit
 
-/// The "Snap & Triage" flow: photo in, machine-filled draft out, resident confirms.
-///
-/// The human-in-the-loop step is deliberate — every field the engine fills stays
-/// editable, and nothing is published until the resident taps submit.
+// the "Snap & Triage" flow
 struct SnapTriageScreen: View {
     @EnvironmentObject private var store: HazardStore
     @EnvironmentObject private var location: LocationManager
@@ -20,7 +17,7 @@ struct SnapTriageScreen: View {
     @State private var isAnalyzing = false
     @State private var errorMessage: String?
 
-    // Editable draft fields.
+    // editable draft fields
     @State private var reportType: HazardType = .streetFlooding
     @State private var severity: Severity = .moderate
     @State private var roadStatus: RoadStatus = .oneLaneOpen
@@ -32,10 +29,9 @@ struct SnapTriageScreen: View {
     @State private var showSubmitted = false
     @State private var showCameraDenied = false
     @State private var showNoCamera = false
-    /// Kept after `reset()` so the Nextdoor offer can compose from it.
+    // kept after `reset()` so the Nextdoor offer can compose from it
     @State private var lastSubmitted: HazardReport?
-    /// Street address and town for where the photo was taken, looked up once a
-    /// photo is in (for the life-safety banner and the report's town).
+    // address and town where the photo was taken
     @State private var hazardAddress: String?
     @State private var placeCity: String?
     @State private var nextdoorFailed = false
@@ -48,8 +44,7 @@ struct SnapTriageScreen: View {
         placeCity ?? NJMunicipalities.nearby(location.coordinate) ?? "New Jersey"
     }
 
-    /// Debug builds accept `-demoScene floodedRoad|downedTree` so a screenshot
-    /// pass can exercise the triage flow without tapping. Never set in Release.
+    // debug: -demoScene floodedRoad|downedTree
     private static var debugScene: DemoPhoto.Scene? {
         #if DEBUG
         guard let raw = UserDefaults.standard.string(forKey: "demoScene") else { return nil }
@@ -91,7 +86,7 @@ struct SnapTriageScreen: View {
                         .accessibilityLabel("Start over")
                     }
                 }
-                // Pinned under the header so it stays in view while the form scrolls.
+                // pinned under the header so it stays in view while the form scrolls
                 if showsLifeSafetyAlert {
                     LifeSafetyBanner(locationText: hazardAddress ?? "\(municipality), NJ")
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -200,7 +195,7 @@ struct SnapTriageScreen: View {
             .clipShape(RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous))
             .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
 
-            // Always shown; without a camera (the simulator) it explains why not.
+            // always shown; without a camera (the simulator) it explains why not
             Button {
                 requestCameraThenPresent()
             } label: {
@@ -452,8 +447,7 @@ struct SnapTriageScreen: View {
         #endif
     }
 
-    /// Checks camera permission before presenting the picker. Without this a
-    /// denied camera shows the resident an opaque black sheet instead of a reason.
+    // checks camera permission before presenting the picker
     private func requestCameraThenPresent() {
         guard CameraPicker.isAvailable else {
             showNoCamera = true
@@ -493,8 +487,7 @@ struct SnapTriageScreen: View {
         do {
             apply(try await engine.analyze(image: image, imageData: data, context: context))
         } catch {
-            // A backend that is unreachable should not dead-end the resident, so
-            // fall back to the on-device engine and say so.
+            // a backend that is unreachable should not dead-end the resident
             errorMessage = "\(error.localizedDescription) Used on-device analysis instead."
             if let fallback = try? await OnDeviceTriageEngine().analyze(image: image, imageData: data, context: context) {
                 apply(fallback)
@@ -525,8 +518,7 @@ struct SnapTriageScreen: View {
                                   municipality: municipality)
         store.add(report, photo: image)
         lastSubmitted = report
-        // Address lookup and the municipal relay run after the report is saved,
-        // so posting is instant and still works with no signal.
+        // address lookup and the municipal relay run after the report is saved
         Task { await ReportFollowUp.run(for: report, store: store, settings: settings, account: account) }
         reset()
         showSubmitted = true
